@@ -13,9 +13,8 @@ services:
       - 8080:8080
     volumes:
       - ./backend:/app
-
-    # depends_on:
-    #   - database
+    depends_on:
+       - database
 
   database:
     image: mongo:latest

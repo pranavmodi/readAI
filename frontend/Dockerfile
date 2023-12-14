@@ -1,29 +1,14 @@
-# Use a Node.js base image to build Tailwind CSS
-FROM node:latest as build-stage
+FROM node:latest
 
-# Set the working directory
-WORKDIR /app
+# Create app directory
+WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (or yarn.lock)
-# COPY frontend/package*.json ./
-
-# Install dependencies
+# Install app dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy the rest of your app's source code
-COPY . /app
+# Bundle app source
+COPY . .
 
-# Build the Tailwind CSS (assuming a build script is defined in package.json)
-RUN npm run build
-
-# Use Nginx to serve the static content
-FROM nginx:stable-alpine as production-stage
-
-# Copy static assets from builder stage
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# Expose port 80
-EXPOSE 80
-
-# Start Nginx when the container launches
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8080
+## CMD [ "node", "your-server-file.js" ]
