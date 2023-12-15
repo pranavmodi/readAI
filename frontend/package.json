@@ -4,9 +4,8 @@
   "description": "A UI project using Tailwind CSS",
   "main": "index.js",
   "scripts": {
-    "start": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch",
-    "build": "tailwindcss -i ./src/input.css -o ./dist/output.css --minify",
-    "build-css": "tailwindcss build src/styles.css -o dist/styles.css"
+    "start": "tailwindcss -i ./src/styles.css -o ./dist/output.css --watch",
+    "build": "tailwindcss -i ./src/styles.css -o ./dist/output.css --minify"
   },
   "repository": {
     "type": "git",

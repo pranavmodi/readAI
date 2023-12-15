@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book List</title>
+</head>
+<body>
+    <h1>Book List</h1>
+    <ul id="book-list"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('https://localhost:8080/get-books')
+                .then(response => response.json())
+                .then(books => {
+                    const list = document.getElementById('book-list');
+                    books.forEach(book => {
+                        const li = document.createElement('li');
+                        li.textContent = book;
+                        list.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
