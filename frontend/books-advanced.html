@@ -22,7 +22,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-    fetch('http://backend:8080/get-books')
+    const API_URL = 'http://localhost:8080';
+    fetch(`${API_URL}/get-books`)
         .then(response => response.json())
         .then(books => {
             const list = document.getElementById('book-list');
