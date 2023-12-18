@@ -10,11 +10,16 @@ COPY package*.json ./
 # Step 4: Install dependencies
 RUN npm install
 
+## RUN npm install -g nodemon
+
 # Step 5: Copy project files and folders to the working directory
 COPY . .
 
 # Step 6: Build the project for production
 RUN npm run build
+
+## CMD ["npm", "start"]
+
 
 # Step 7: Use Nginx to serve the static files
 FROM nginx:stable-alpine as production-stage
@@ -27,3 +32,5 @@ EXPOSE 80
 
 # Step 10: Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
+
+##CMD ["nodemon", "books-advanced.html"]

@@ -2,6 +2,8 @@ version: '3.8'
 services:
   frontend:
     build: ./frontend
+    volumes:
+      - ./frontend:/app
     ports:
       - 80:80
     depends_on:
