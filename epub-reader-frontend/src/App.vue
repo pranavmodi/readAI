@@ -35,15 +35,16 @@ export default {
       const file = e.target.files[0];
       if (file && file.type === "application/epub+zip") {
         const url = URL.createObjectURL(file);
+        console.log("Uploaded EPUB URL:", url);
         this.loadBook(url);
       } else {
         alert("Please select an EPUB file.");
       }
     },
     handleResize() {
-      this.windowSize.width = window.innerWidth;
-      this.windowSize.height = window.innerHeight;
       if (this.rendition) {
+        this.windowSize.width = window.innerWidth;
+        this.windowSize.height = window.innerHeight;
         this.rendition.resize(this.windowSize.width, this.windowSize.height);
       }
     },
@@ -52,7 +53,10 @@ export default {
       this.loadBook(defaultBookPath);
     },
     loadBook(url) {
-      this.book = ePub(url);
+    if (this.rendition) {
+      this.rendition.destroy();
+    }
+      this.book = ePub(url, { method: "worker" });
       this.book.ready.then(() => {
         // Set the rendition to the full window size
         this.rendition = this.book.renderTo("book-area", {
