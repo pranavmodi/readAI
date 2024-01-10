@@ -1,19 +1,28 @@
 <template>
-  <div id="app">
-    <header>
+  <div id="app" class="flex flex-col h-screen">
+    <header class="bg-gray-800 text-white text-center p-4">
       <h1>My EPUB Reader</h1>
     </header>
-    <main>
-      <div id="book-area"></div>
+    <main class="flex-grow overflow-auto">
+      <div id="book-area" class="h-full"></div>
     </main>
-    <footer>
-      <button @click="prevPage">Previous</button>
-      <button @click="nextPage">Next</button>
+    <footer class="flex justify-center bg-gray-200 p-4">
+      <button @click="prevPage" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
+        Previous
+      </button>
+      <button @click="nextPage" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Next
+      </button>
     </footer>
-    <input type="file" @change="onFileChange">
-    <button @click="loadDefaultBook">Load Default Book</button>
+    <div class="flex justify-center p-4">
+      <input type="file" @change="onFileChange" class="mr-2">
+      <button @click="loadDefaultBook" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+        Load Default Book
+      </button>
+    </div>
   </div>
 </template>
+
 
 <script>
 import ePub from 'epubjs';
@@ -114,16 +123,5 @@ export default {
 </script>
 
 <style>
-#book-area {
-  width: 100vw;
-  height: 100vh;
-  /* Add additional styling as needed */
-}
-/* You might want to style the body or the main container to ensure it takes full height */
-html, body, #app {
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-}
 </style>
 
