@@ -32,15 +32,17 @@ export default {
   },
   methods: {
     onFileChange(e) {
-      const file = e.target.files[0];
-      if (file && file.type === "application/epub+zip") {
-        const url = URL.createObjectURL(file);
-        console.log("Uploaded EPUB URL:", url);
-        this.loadBook(url);
-      } else {
-        alert("Please select an EPUB file.");
-      }
-    },
+    const file = e.target.files[0];
+    if (file && file.type === "application/epub+zip") {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        this.loadBook(reader.result); // reader.result contains the ArrayBuffer
+      }, false);
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("Please select an EPUB file.");
+    }
+  },
     handleResize() {
       if (this.rendition) {
         this.windowSize.width = window.innerWidth;
@@ -49,26 +51,40 @@ export default {
       }
     },
     loadDefaultBook() {
-      const defaultBookPath = "/Heart-of-Darkness.epub";
-      this.loadBook(defaultBookPath);
+    const defaultBookPath = "/Heart-of-Darkness.epub";
+    fetch(defaultBookPath)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.arrayBuffer();
+      })
+      .then(arrayBuffer => {
+        this.loadBook(arrayBuffer);
+      })
+      .catch(error => {
+        console.error("Error loading default book:", error);
+      });
     },
-    loadBook(url) {
-    if (this.rendition) {
-      this.rendition.destroy();
-    }
-      this.book = ePub(url, { method: "worker" });
+
+
+    loadBook(arrayBuffer) {
+      if (this.rendition) {
+        this.rendition.destroy();
+      }
+      this.book = ePub(arrayBuffer);
       this.book.ready.then(() => {
-        // Set the rendition to the full window size
         this.rendition = this.book.renderTo("book-area", {
-          width: window.innerWidth, 
-          height: window.innerHeight
+          width: this.windowSize.width, 
+          height: this.windowSize.height
         });
         this.rendition.display();
-        this.handleResize(); // Handle initial sizing
+        this.handleResize();
       }).catch(error => {
         console.error("Error loading book:", error);
       });
     },
+
     prevPage() {
       if (this.rendition) {
         this.rendition.prev();
