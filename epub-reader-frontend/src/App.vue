@@ -51,6 +51,7 @@ export default {
       fontSize: 100,
       isSidePanelOpen: false,
       bookAreaWidth: null,
+      epubFile: null, // Store the actual file object here
       windowSize: {
         width: window.innerWidth,
         height: window.innerHeight
@@ -84,26 +85,41 @@ export default {
     }
   },
 
-    uploadEpubFile() {
+  uploadEpubFile() {
+    // Check if this.epubFile is a File object and has a size greater than 0
+    if (this.epubFile && this.epubFile.size > 0) {
       const formData = new FormData();
-      formData.append('file', this.book); // Assuming this.epubFile holds the file object
+      formData.append('file', this.epubFile); // Assuming this.epubFile holds the file object
 
       fetch('http://localhost:8000/upload-epub', {
         method: 'POST',
         body: formData,
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
       .then(data => {
         console.log('Success:', data);
       })
       .catch((error) => {
         console.error('Error:', error);
       });
-    },
+    } else {
+      console.error('No valid epub file to upload');
+    }
+  },
 
-    onFileChange(e) {
+
+  onFileChange(e) {
     const file = e.target.files[0];
     if (file && file.type === "application/epub+zip") {
+      this.epubFile = file;
+      console.log("File type:", this.epubFile.type); // Log the file type to the console
+      console.log("File:", this.epubFile); // Additionally, log the entire file object
+
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         this.loadBook(reader.result); // reader.result contains the ArrayBuffer
@@ -112,30 +128,40 @@ export default {
     } else {
       alert("Please select an EPUB file.");
     }
-  },
+},
+
+
     handleResize() {
+      console.log("Rendition in handleResize:", this.rendition);
       if (this.rendition) {
         this.windowSize.width = window.innerWidth;
         this.windowSize.height = window.innerHeight;
         this.rendition.resize(this.windowSize.width, this.windowSize.height);
       }
     },
+
     loadDefaultBook() {
-    const defaultBookPath = "/Heart-of-Darkness.epub";
-    fetch(defaultBookPath)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.arrayBuffer();
-      })
-      .then(arrayBuffer => {
-        this.loadBook(arrayBuffer);
-      })
-      .catch(error => {
-        console.error("Error loading default book:", error);
-      });
+      const defaultBookPath = "/Heart-of-Darkness.epub";
+
+      fetch(defaultBookPath)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          this.epubFile = new File([blob], "Heart-of-Darkness.epub", { type: 'application/epub+zip' });
+          return blob.arrayBuffer(); // Convert the Blob to an ArrayBuffer
+        })
+        .then(arrayBuffer => {
+          this.loadBook(arrayBuffer); // Load the book using the ArrayBuffer
+        })
+        .catch(error => {
+          console.error("Error loading default book:", error);
+        });
     },
+
 
     increaseFontSize() {
       if (this.rendition) {
@@ -163,7 +189,9 @@ export default {
         });
         this.rendition.themes.fontSize(`${this.fontSize}%`);
         this.rendition.display();
-        this.handleResize();
+        console.log("Rendition after display:", this.rendition);
+        //this.handleResize();
+        window.addEventListener('resize', this.handleResize);
       }).catch(error => {
         console.error("Error loading book:", error);
       });
@@ -187,8 +215,8 @@ export default {
   mounted() {
     this.$nextTick(() => {
       this.loadDefaultBook(); // Load the default book on component mount
-      window.addEventListener('resize', this.handleResize);
-      this.handleResize(); // Adjust this to wait for the next DOM update cycle
+      //window.addEventListener('resize', this.handleResize);
+      //this.handleResize(); // Adjust this to wait for the next DOM update cycle
     });    
   },
   beforeUnmount() {

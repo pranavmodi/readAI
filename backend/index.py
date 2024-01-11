@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 import os
 
 app = Flask(__name__)
@@ -16,17 +17,17 @@ def get_books():
 
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
-    if 'epub' not in request.files:
+    if 'file' not in request.files:
         return 'No epub file part', 400
 
-    file = request.files['epub']
+    file = request.files['file']
 
     if file.filename == '':
         return 'No selected file', 400
 
     if file:
         filename = secure_filename(file.filename)
-        file_path = os.path.join('/path/to/save', filename)
+        file_path = os.path.join('.', filename)
         file.save(file_path)
         return jsonify({"message": "File uploaded successfully", "filename": filename})
 
