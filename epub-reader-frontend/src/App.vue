@@ -51,6 +51,7 @@ export default {
       fontSize: 100,
       isSidePanelOpen: false,
       bookAreaWidth: null,
+      fileUploaded: false,
       epubFile: null, // Store the actual file object here
       windowSize: {
         width: window.innerWidth,
@@ -62,8 +63,13 @@ export default {
 
     aiAssist() {
       // Step 3: Implement sending the EPUB file to the server
-      this.uploadEpubFile();
-
+      if (this.fileUploaded == false) {
+        this.uploadEpubFile();
+        console.log("going to upload file");
+      }
+      else {
+        console.log("not going to upload again");
+      }
       // Step 4: Open the side panel
       this.openSidePanel();
 
@@ -103,6 +109,7 @@ export default {
       })
       .then(data => {
         console.log('Success:', data);
+        this.fileUploaded = true;
       })
       .catch((error) => {
         console.error('Error:', error);
@@ -117,9 +124,8 @@ export default {
     const file = e.target.files[0];
     if (file && file.type === "application/epub+zip") {
       this.epubFile = file;
-      console.log("File type:", this.epubFile.type); // Log the file type to the console
-      console.log("File:", this.epubFile); // Additionally, log the entire file object
-
+      this.fileUploaded = false;
+      console.log("File uploaded bool:", this.fileUploaded);
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         this.loadBook(reader.result); // reader.result contains the ArrayBuffer
