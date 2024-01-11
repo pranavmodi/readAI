@@ -1,4 +1,11 @@
-const { defineConfig } = require('@vue/cli-service')
+const { defineConfig } = require('@vue/cli-service');
+
 module.exports = defineConfig({
-  transpileDependencies: true
-})
+  transpileDependencies: true,
+
+  devServer: {
+    host: '0.0.0.0',
+    hot: true,
+    watchFiles: ['src/**/*'],
+  },
+});
