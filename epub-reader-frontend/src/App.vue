@@ -15,7 +15,7 @@
       </button>
     </footer>
     <div class="flex justify-center p-4">
-      <input type="file" @change="onFileChange" class="mr-2">
+      <input type="file" @change="onFileChange" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
       <button @click="loadDefaultBook" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
         Load Default Book
       </button>
