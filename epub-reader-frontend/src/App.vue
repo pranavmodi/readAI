@@ -1,42 +1,59 @@
 <template>
-  <div id="app" class="flex flex-col h-screen">
-    <header class="bg-gray-800 text-white text-center p-4">
-      <h1>My EPUB Reader</h1>
+  <div id="app" class="flex flex-col h-screen bg-coolGray-100">
+    <header class="bg-indigo-700 text-white text-center py-4">
+      <h1 class="font-bold text-3xl">My AI-Assisted EPUB Reader</h1>
     </header>
-    <main :class="{ 'flex-grow': !isSidePanelOpen, 'limited-width': isSidePanelOpen }" class="overflow-auto">
-      <div id="book-area" :style="{ width: bookAreaWidth + 'px' }" class="h-full"></div>
-      <div v-if="isSidePanelOpen" class="side-panel">
-        <!-- Content of the side panel goes here -->
+
+    <main :class="isSidePanelOpen ? 'flex-row' : 'flex-col'" class="flex flex-grow overflow-auto p-4">
+      <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
+        <!-- Book content here -->
+      </div>
+      <div v-if="isSidePanelOpen" class="w-80 bg-lightBlue-500 rounded text-black p-4">
+        <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
+        <div class="ai-content">
+          <p>Here's some AI-generated insight based on your current reading.</p>
+        </div>
       </div>
     </main>
 
-    <footer class="flex justify-center bg-gray-200 p-4">
-      <button @click="prevPage" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">
-        Previous
-      </button>
-      <button @click="nextPage" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-        Next
-      </button>
-      <button @click="decreaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mr-2">
-    A-
-  </button>
-  <button @click="increaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-    A+
-  </button>
-  <div class="flex justify-center p-4">
-      <input type="file" @change="onFileChange" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-      <button @click="loadDefaultBook" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-        Load Default Book
-      </button>
-    </div>
-    <button @click="aiAssist" class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
-    AI Assistance
-  </button>
+    <footer class="flex justify-center bg-purple-800 p-4">
+      <div class="button-group space-x-2">
+        <button @click="prevPage" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+          Previous
+        </button>
+        <button @click="nextPage" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+          Next
+        </button>
+        <button @click="decreaseFontSize" class="bg-violet-500 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded">
+          A-
+        </button>
+        <button @click="increaseFontSize" class="bg-violet-500 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded">
+          A+
+        </button>
+        <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+          Load Default Book
+        </button>
+        <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+          AI Assistance
+        </button>
+      </div>
     </footer>
-
   </div>
-
 </template>
+
+
+<style>
+.flex-grow {
+  transition: all 0.3s ease;
+}
+
+.limited-width {
+  max-width: 75%; /* Adjust as necessary */
+  transition: all 0.3s ease;
+}
+</style>
+
 
 
 <script>
@@ -71,16 +88,18 @@ export default {
         console.log("not going to upload again");
       }
       // Step 4: Open the side panel
-      this.openSidePanel();
+      this.toggleSidePanel();
 
       // Step 5: Resize the book rendition
       this.resizeBookForSidePanel();
     },
 
-    openSidePanel() {
-      this.isSidePanelOpen = true;
-      this.resizeBookForSidePanel(); // Resize when the panel is opened
+    toggleSidePanel() {
+    this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
+    this.resizeBookForSidePanel(); // Resize accordingly
     },
+
+
 
     resizeBookForSidePanel() {
     const sidePanelWidth = this.isSidePanelOpen ? 300 : 0; // Assuming 300px width for the side panel
@@ -232,13 +251,6 @@ export default {
 </script>
 
 <style>
-.flex-grow {
-  /* CSS rules for normal state */
-}
-
-.limited-width {
-  /* CSS rules to limit width when side panel is open */
-}
 </style>
 
 
