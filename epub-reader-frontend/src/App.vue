@@ -8,7 +8,7 @@
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
         <!-- Book content here -->
       </div>
-      <div v-if="isSidePanelOpen" class="w-80 bg-lightBlue-500 rounded text-black p-4">
+      <div v-if="isSidePanelOpen" id="side-panel" class="w-80 bg-lightBlue-500 rounded text-black p-4">
         <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
         <div class="ai-content">
           <p>Here's some AI-generated insight based on your current reading.</p>
@@ -91,14 +91,13 @@ export default {
       this.toggleSidePanel();
 
       // Step 5: Resize the book rendition
-      this.resizeBookForSidePanel();
+      this.handleResize();
     },
 
     toggleSidePanel() {
-    this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
-    this.resizeBookForSidePanel(); // Resize accordingly
+      this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
+      //this.resizeBookForSidePanel(); // Resize accordingly
     },
-
 
 
     resizeBookForSidePanel() {
@@ -156,14 +155,48 @@ export default {
 },
 
 
+    // handleResize() {
+    //   console.log("Rendition in handleResize:", this.rendition);
+    //   if (this.rendition) {
+    //     this.windowSize.width = window.innerWidth;
+    //     this.windowSize.height = window.innerHeight;
+    //     this.rendition.resize(this.windowSize.width, this.windowSize.height);
+    //   }
+    // },
+
+
+
     handleResize() {
       console.log("Rendition in handleResize:", this.rendition);
       if (this.rendition) {
-        this.windowSize.width = window.innerWidth;
-        this.windowSize.height = window.innerHeight;
+        // Get the window's width and height
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Calculate the height of the header and footer
+        const headerHeight = document.querySelector('header').offsetHeight;
+        const footerHeight = document.querySelector('footer').offsetHeight;
+
+        // Subtract the header and footer height from the window height
+        const availableHeight = windowHeight - headerHeight - footerHeight;
+
+        // Determine the width of the side panel
+        const sidePanel = document.getElementById('side-panel');
+        const sidePanelWidth = sidePanel ? sidePanel.offsetWidth : 0;
+
+        // Check if the side panel is open and adjust the width
+        const availableWidth = this.isSidePanelOpen ? windowWidth - sidePanelWidth : windowWidth;
+
+        // Update the windowSize in your data
+        this.windowSize.width = availableWidth - 300;
+        this.windowSize.height = availableHeight - 200;
+
+        // Resize the rendition to fit the new available space
+        console.log("width and height:", this.windowSize.width, this.windowSize.height);
         this.rendition.resize(this.windowSize.width, this.windowSize.height);
       }
-    },
+},
+
 
     loadDefaultBook() {
       const defaultBookPath = "/Heart-of-Darkness.epub";
@@ -215,8 +248,8 @@ export default {
         this.rendition.themes.fontSize(`${this.fontSize}%`);
         this.rendition.display();
         console.log("Rendition after display:", this.rendition);
-        //this.handleResize();
-        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+        
       }).catch(error => {
         console.error("Error loading book:", error);
       });
@@ -240,7 +273,7 @@ export default {
   mounted() {
     this.$nextTick(() => {
       this.loadDefaultBook(); // Load the default book on component mount
-      //window.addEventListener('resize', this.handleResize);
+      window.addEventListener('resize', this.handleResize);
       //this.handleResize(); // Adjust this to wait for the next DOM update cycle
     });    
   },
