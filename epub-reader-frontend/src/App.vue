@@ -268,17 +268,36 @@ export default {
       } else {
         console.error("Rendition is not initialized.");
       }
-    }
+    },
+
+    handleKeyDown(event) {
+      switch (event.key) {
+        case 'ArrowRight': // Right arrow key for next page
+          this.nextPage();
+          break;
+        case 'ArrowLeft': // Left arrow key for previous page
+          this.prevPage();
+          break;
+        // ... handle other keys if needed ...
+      }
+    },
+
+
   },
+
+
+  
   mounted() {
     this.$nextTick(() => {
       this.loadDefaultBook(); // Load the default book on component mount
+      window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
       //this.handleResize(); // Adjust this to wait for the next DOM update cycle
     });    
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('keydown', (event) => this.handleKeyDown(event));
   }
 }
 </script>
