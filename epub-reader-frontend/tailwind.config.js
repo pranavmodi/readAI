@@ -9,6 +9,11 @@ module.exports = {
     extend: {},
   },
   plugins: [],
+  extend: {
+    width: {
+      'custom': '600px', // Add a custom width
+    }
+  }
 }
 
 

@@ -8,8 +8,19 @@
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
         <!-- Book content here -->
       </div>
-      <div v-if="isSidePanelOpen" id="side-panel" class="w-80 bg-lightBlue-500 rounded text-black p-4">
+      <!-- <div v-if="isSidePanelOpen" id="side-panel" class="w-80 bg-lightBlue-500 rounded text-black p-4"> -->
+      <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
+
         <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
+            <!-- Chapter Summary Button -->
+            <button @click="showChapterSummary" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block mb-2">
+              Chapter Summary
+            </button>
+
+            <!-- AI Explanation Button -->
+            <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
+              AI Explanation
+            </button>
         <div class="ai-content">
           <p>Here's some AI-generated insight based on your current reading.</p>
         </div>
@@ -94,6 +105,16 @@ export default {
       this.handleResize();
     },
 
+
+    showChapterSummary() {
+      // Logic to show chapter summary
+      console.log('Chapter Summary button clicked');
+    },
+    showAIExplanation() {
+      // Logic to show AI explanation
+      console.log('AI Explanation button clicked');
+    },
+
     toggleSidePanel() {
       this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
       //this.resizeBookForSidePanel(); // Resize accordingly
@@ -168,6 +189,7 @@ export default {
 
     handleResize() {
       console.log("Rendition in handleResize:", this.rendition);
+      // console.alert("handleResize called");
       if (this.rendition) {
         // Get the window's width and height
         const windowWidth = window.innerWidth;
@@ -199,6 +221,9 @@ export default {
 
 
     loadDefaultBook() {
+      if (this.rendition) {
+        this.rendition.destroy();
+      }
       const defaultBookPath = "/Heart-of-Darkness.epub";
 
       fetch(defaultBookPath)
@@ -214,6 +239,7 @@ export default {
         })
         .then(arrayBuffer => {
           this.loadBook(arrayBuffer); // Load the book using the ArrayBuffer
+          this.handleResize();
         })
         .catch(error => {
           console.error("Error loading default book:", error);
@@ -286,13 +312,17 @@ export default {
   },
 
 
-  
   mounted() {
     this.$nextTick(() => {
-      this.loadDefaultBook(); // Load the default book on component mount
+      // this.loadDefaultBook(); // Load the default book on component mount
       window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
-      //this.handleResize(); // Adjust this to wait for the next DOM update cycle
+      this.handleResize(); // Adjust this to wait for the next DOM update cycle
+      this.loadDefaultBook(); // Load the default book on component mount
+
+      // this.loadDefaultBook(); // Load the default book on component mount
+      //this.loadDefaultBook(); // Load the default book on component mount
+
     });    
   },
   beforeUnmount() {

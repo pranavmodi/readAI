@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from read_main import get_isbn
 import os
 
 app = Flask(__name__)
@@ -29,7 +30,18 @@ def upload_epub():
         filename = secure_filename(file.filename)
         file_path = os.path.join('.', filename)
         file.save(file_path)
-        return jsonify({"message": "File uploaded successfully", "filename": filename})
+
+        # Get ISBN from the file
+        isbn = get_isbn(file)
+
+        # If the ISBN is found
+        if isbn:
+            return jsonify({"message": "File uploaded successfully", "filename": filename, "ISBN": isbn})
+        else:
+            return jsonify({"message": "File uploaded but ISBN not found", "filename": filename})
+    
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=8000)

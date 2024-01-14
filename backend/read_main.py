@@ -13,18 +13,28 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
+
+def get_isbn(book):
+    # Get the EPUB's metadata
+    metadata = book.get_metadata('DC', 'identifier')
+
+    # Look for the ISBN
+    isbn = None
+    for item in metadata:
+        # ISBNs often contain 'isbn' in their value
+        if 'isbn' in item[0].lower():
+            isbn = item[0]
+            break
+
+    print('the isbn is', isbn)
+    return isbn
+
 def read_epub(file_path, book_name, author_name):
     # Open the EPUB file
     book = epub.read_epub(file_path)
 
-    # Iterate through each item in the book
+    # Get the EPUB's metadata
 
-    # book_items = []
-    # for item in book.get_items():
-    #     book_items.append(item)
-
-    # print('the lenghth of book items', len(book_items))
-    ##for item in book.get_items():
     db_collection = init_db(book_name)
 
     book_text = ''
@@ -65,6 +75,6 @@ def read_epub(file_path, book_name, author_name):
 
 if __name__ == "__main__":
     
-    os.chdir('/Users/pranav/personal/books')
+    os.chdir('/Users/pranav/personal/books/selfhelp/')
     read_epub('Be Useful.epub', "Be Useful", "Arnold Schwarzenegger")
 

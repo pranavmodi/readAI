@@ -1,6 +1,12 @@
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
 
-client = OpenAI()
+load_dotenv()  # Load environment variables from .env file
+openai_api_key = os.getenv('OPENAI_API_KEY1')
+
+
+client = OpenAI(api_key=openai_api_key)
 
 completion = client.chat.completions.create(
   model="gpt-3.5-turbo",
