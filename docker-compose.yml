@@ -18,7 +18,7 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - OPENAI_API_KEY1=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
+      - OPENAI_API_KEY1
     depends_on:
       - database
 
