@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from read_main import get_isbn
+from process_book import book_main
 import os
+import threading
+
 
 app = Flask(__name__)
 CORS(app)
@@ -25,20 +27,20 @@ def upload_epub():
 
     if file.filename == '':
         return 'No selected file', 400
-
+    
     if file:
         filename = secure_filename(file.filename)
         file_path = os.path.join('.', filename)
         file.save(file_path)
 
-        # Get ISBN from the file
-        isbn = get_isbn(file_path)
+        # Start a new thread for processing the ePub file
+        thread = threading.Thread(target=book_main, args=(file_path,))
+        thread.start()
 
-        # If the ISBN is found
-        if isbn:
-            return jsonify({"message": "File uploaded successfully", "filename": filename, "ISBN": isbn})
-        else:
-            return jsonify({"message": "File uploaded but ISBN not found", "filename": filename})
+        # Return response immediately
+        return jsonify({"message": "File upload initiated", "filename": filename})        
+
+
     
 
 
