@@ -32,7 +32,7 @@ def upload_epub():
         file.save(file_path)
 
         # Get ISBN from the file
-        isbn = get_isbn(file)
+        isbn = get_isbn(file_path)
 
         # If the ISBN is found
         if isbn:

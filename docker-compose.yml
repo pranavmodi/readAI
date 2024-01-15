@@ -17,8 +17,10 @@ services:
       - 8000:8000
     volumes:
       - ./backend:/app
+    environment:
+      - OPENAI_API_KEY1=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
     depends_on:
-       - database
+      - database
 
   database:
     image: mongo:latest

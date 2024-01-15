@@ -14,20 +14,34 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     return num_tokens
 
 
-def get_isbn(book):
+def get_isbn(file_path):
     # Get the EPUB's metadata
+    import lxml.etree as etree
+
+    book = epub.read_epub(file_path)
     metadata = book.get_metadata('DC', 'identifier')
 
-    # Look for the ISBN
-    isbn = None
-    for item in metadata:
-        # ISBNs often contain 'isbn' in their value
-        if 'isbn' in item[0].lower():
-            isbn = item[0]
-            break
+    # Access the package (metadata, manifest, and spine are stored here)
+    try:
+        package = book.get_item_with_id('ncx').get_content()
+        root = etree.fromstring(package)
 
-    print('the isbn is', isbn)
-    return isbn
+        # Define the namespaces used in the package document
+        ns = {
+            'dc': 'http://purl.org/dc/elements/1.1/',
+            'opf': 'http://www.idpf.org/2007/opf'
+        }
+
+        # Look for the <dc:identifier> element
+        for identifier in root.findall('.//dc:identifier', ns):
+            if identifier.text.startswith('urn:isbn:'):
+                return identifier.text[9:]  # Remove the 'urn:isbn:' part
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+        print(f"An error occurred: {e}")
+        return None
 
 def read_epub(file_path, book_name, author_name):
     # Open the EPUB file
@@ -65,10 +79,6 @@ def read_epub(file_path, book_name, author_name):
             user_input = input("Continue with next chapter? (y/n): ")
             if user_input == 'n':
                 sys.exit()
-
-    
-
-
 
 
 
