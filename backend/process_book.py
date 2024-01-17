@@ -5,7 +5,6 @@ from pymongo import MongoClient
 import pymongo
 import logging
 from pymongo.errors import ConnectionFailure
-import tiktoken
 from readai import summarize_book_chapter
 
 
@@ -30,29 +29,35 @@ def connect_to_mongodb():
     collection = db['insights']
     return collection
 
+def lookup_summary(chapter_id):
+    # Query the database for the summary
+    collection = connect_to_mongodb()
+    summary_document = collection.find_one({"chapter_identifier": chapter_id})
 
-def num_tokens_from_string(string: str, encoding_name: str) -> int:
-    """Returns the number of tokens in a text string."""
-    encoding = tiktoken.get_encoding(encoding_name)
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
-
-
-
+    if summary_document:
+        # Return the summary if found
+        return summary_document['chapter_summary']
+    else:
+        # Handle case where no summary is found
+        return None
 
 # Function to process the ePub file
 def process_epub(file_path, collection):
     logging.info("Inside process_epub")
     book = epub.read_epub(file_path)
     chapter_count = 0  # Initialize a counter for chapters
+    book_title = book.get_metadata('DC', 'title')[0][0]
+    logging.info("book_title is %s", book_title)
 
     for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         chapter_count += 1  # Increment the chapter count
         chapter_content = item.get_body_content().decode()
 
         # Create a unique identifier for each chapter, for example, using book title and chapter number
-        book_title = book.get_metadata('DC', 'title')[0][0]
-        chapter_identifier = f"{book_title}_Chapter_{chapter_count}"
+
+        chapter_uri = item.file_name
+        logging.info("chapter_uri is %s", chapter_uri)
+        chapter_identifier = f"{book_title}_Chapter_{chapter_uri}"
 
         # Check if the summary for this chapter already exists in the database
         existing_summary = collection.find_one({"chapter_identifier": chapter_identifier})
@@ -76,11 +81,6 @@ def process_epub(file_path, collection):
 
     logging.info("Total chapters processed in the book: %d", chapter_count)
 
-
-
-                
-
-
 # Function to create indexes in MongoDB
 def create_indexes(collection):
     # Define the index specifications
@@ -103,9 +103,6 @@ def create_indexes(collection):
             logging.info(f"Created index: {index_spec['name']}")
         else:
             logging.info(f"Index already exists: {index_spec['name']}")
-
-
-
 
 def book_main(file_path):
     try:

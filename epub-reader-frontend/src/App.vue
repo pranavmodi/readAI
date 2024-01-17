@@ -16,14 +16,15 @@
             <button @click="showChapterSummary" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block mb-2">
               Chapter Summary
             </button>
-
+            <!-- Chapter Summary Display -->
+            <div v-if="currentChapterSummary" class="chapter-summary">
+              <h5 class="font-semibold">Chapter Summary:</h5>
+              <p>{{ currentChapterSummary }}</p>
+            </div>
             <!-- AI Explanation Button -->
-            <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
+            <!-- <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
               AI Explanation
-            </button>
-        <div class="ai-content">
-          <p>Here's some AI-generated insight based on your current reading.</p>
-        </div>
+            </button> -->
       </div>
     </main>
 
@@ -79,6 +80,9 @@ export default {
       fontSize: 100,
       isSidePanelOpen: false,
       bookAreaWidth: null,
+      currentChapterURI: null,
+      bookTitle: null,
+      currentChapterSummary: null,
       fileUploaded: false,
       epubFile: null, // Store the actual file object here
       windowSize: {
@@ -88,6 +92,17 @@ export default {
     };
   },
   methods: {
+
+    getCurrentChapterURI() {
+    if (this.rendition) {
+      const currentLocation = this.rendition.currentLocation();
+      if (currentLocation && currentLocation.start) {
+         this.currentChapterURI = currentLocation.start.href; // This is the URI of the current chapter
+         console.log("Current chapter URI:", this.currentChapterURI);
+      }
+    }
+    return null;
+  },
 
     aiAssist() {
       // Step 3: Implement sending the EPUB file to the server
@@ -103,13 +118,50 @@ export default {
 
       // Step 5: Resize the book rendition
       this.handleResize();
+
+      this.getCurrentChapterURI()
     },
 
+    generateChapterIdentifier() {
+      // Assuming bookTitle is set when the book is loaded
+      return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
+    },
 
     showChapterSummary() {
-      // Logic to show chapter summary
-      console.log('Chapter Summary button clicked');
+      const chapterIdentifier = this.generateChapterIdentifier();
+      console.log(`Fetching summary for chapter: ${chapterIdentifier}`);
+
+      // URL of your Flask endpoint
+      const url = `http://localhost:8000/get-summary/${encodeURIComponent(chapterIdentifier)}`;
+
+      // Make the HTTP GET request
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.status === "success") {
+            // Handle the retrieved summary
+            console.log("Chapter Summary:", data.chapter_summary);
+            this.currentChapterSummary = data.chapter_summary
+            // You might want to update some data property or state with this summary
+            // For example: this.currentChapterSummary = data.chapter_summary;
+          } else {
+            console.error("Error fetching summary:", data.message);
+          }
+        })
+        .catch(error => {
+          console.error("Error in fetching chapter summary:", error.message);
+        });
     },
+
+    // showChapterSummary() {
+    //   // Logic to show chapter summary
+    //   console.log('Chapter Summary button clicked');
+    // },
     showAIExplanation() {
       // Logic to show AI explanation
       console.log('AI Explanation button clicked');
@@ -271,6 +323,10 @@ export default {
           width: this.windowSize.width, 
           height: this.windowSize.height
         });
+        this.book.loaded.metadata.then(metadata => {
+        this.bookTitle = metadata.title; // Store the book title in the component's data
+        console.log("Book title:", this.bookTitle);
+        })
         this.rendition.themes.fontSize(`${this.fontSize}%`);
         this.rendition.display();
         console.log("Rendition after display:", this.rendition);
@@ -284,6 +340,7 @@ export default {
     prevPage() {
       if (this.rendition) {
         this.rendition.prev();
+        this.getCurrentChapterURI()
       } else {
         console.error("Rendition is not initialized.");
       }
@@ -291,6 +348,7 @@ export default {
     nextPage() {
       if (this.rendition) {
         this.rendition.next();
+        this.getCurrentChapterURI()
       } else {
         console.error("Rendition is not initialized.");
       }

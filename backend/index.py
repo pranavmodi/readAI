@@ -1,9 +1,10 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from process_book import book_main
+from process_book import book_main, lookup_summary
 import os
 import threading
+import logging
 
 
 app = Flask(__name__)
@@ -38,11 +39,30 @@ def upload_epub():
         thread.start()
 
         # Return response immediately
-        return jsonify({"message": "File upload initiated", "filename": filename})        
+        return jsonify({"message": "File upload initiated", "filename": filename})
 
+
+@app.route('/get-summary/<path:chapter_id>', methods=['GET'])
+def get_summary(chapter_id):
+    # Query the database for the summary
+    logging.info("Inside get_summary, the requested chapter_id is %s", chapter_id)
+    summary_document = lookup_summary(chapter_id)
+    logging.info("summary_document is %s", summary_document)
+
+    if summary_document:
+        # Return the summary if found
+        return jsonify({
+            "status": "success",
+            "chapter_summary": summary_document
+        })
+    else:
+        # Handle case where no summary is found
+        return jsonify({
+            "status": "error",
+            "message": "Summary not found for chapter ID: " + chapter_id
+        }), 404
 
     
-
 
 
 if __name__ == '__main__':

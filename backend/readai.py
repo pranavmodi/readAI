@@ -25,7 +25,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
-def split_into_chunks(text, max_token_length=4000):
+def split_into_chunks(text, max_token_length=3000):
     """
     Splits a text into chunks, each having a maximum of max_token_length tokens.
     This uses a rough approximation of 4 characters per token.
@@ -109,7 +109,7 @@ def consolidate_summaries(summaries, client):
 def summarize_book_chapter(chapter_text):
     # Check if the chapter needs to be split into chunks
     client = create_client()
-    if num_tokens_from_string(chapter_text, 'r50k_base') > 4000:
+    if num_tokens_from_string(chapter_text, 'r50k_base') > 3000:
         chunks = split_into_chunks(chapter_text)
         chunk_summaries = [summarize_chunk(chunk, client) for chunk in chunks]
         consolidated_summary = consolidate_summaries(chunk_summaries, client)
