@@ -2,6 +2,7 @@ version: '3.8'
 services:
   vue-frontend:
     build: ./epub-reader-frontend
+    image: frontend:latest
     volumes:
       - ./epub-reader-frontend:/app
       - /app/node_modules
@@ -13,6 +14,7 @@ services:
 
   backend:
     build: ./backend
+    image: backend:latest
     ports:
       - 8000:8000
     volumes:

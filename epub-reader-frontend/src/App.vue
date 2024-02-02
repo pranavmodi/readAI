@@ -1,7 +1,7 @@
 <template>
   <div id="app" class="flex flex-col h-screen bg-coolGray-100">
     <header class="bg-indigo-700 text-white text-center py-4">
-      <h1 class="font-bold text-3xl">My AI-Assisted EPUB Reader</h1>
+      <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
     </header>
 
     <main :class="isSidePanelOpen ? 'flex-row' : 'flex-col'" class="flex flex-grow overflow-auto p-4">

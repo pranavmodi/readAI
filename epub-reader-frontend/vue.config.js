@@ -7,5 +7,6 @@ module.exports = defineConfig({
     host: '0.0.0.0',
     hot: true,
     watchFiles: ['src/**/*'],
+    allowedHosts: 'all'
   },
 });
