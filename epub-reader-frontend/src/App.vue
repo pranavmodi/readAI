@@ -47,7 +47,7 @@
           Load Default Book
         </button>
         <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
-          AI Assistance
+          Book Summary
         </button>
       </div>
     </footer>
