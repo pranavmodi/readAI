@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import pymongo
 import logging
 from pymongo.errors import ConnectionFailure
-from readai import summarize_book_chapter
+from readai import summarize_book_chapter, summarize_book
 
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,8 @@ logging.basicConfig(level=logging.INFO)
 
 # Function to connect to MongoDB
 def connect_to_mongodb():
-    # client = MongoClient('mongodb://localhost:27017/')
-    client = MongoClient('mongodb://172.18.0.2:27017/')
+    client = MongoClient('mongodb://localhost:27017/')
+    # client = MongoClient('mongodb://172.18.0.2:27017/')
     try:
         # The ismaster command is cheap and does not require auth.
         client.admin.command('ismaster')
@@ -48,6 +48,7 @@ def process_epub(file_path, collection):
     chapter_count = 0  # Initialize a counter for chapters
     book_title = book.get_metadata('DC', 'title')[0][0]
     logging.info("book_title is %s", book_title)
+    chapter_summaries = []
 
     for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         chapter_count += 1  # Increment the chapter count
@@ -65,6 +66,7 @@ def process_epub(file_path, collection):
         if existing_summary is None:
             # Summary not found in database, generate it
             chapter_summary = summarize_book_chapter(chapter_content)
+            chapter_summaries.append(chapter_summary)
 
             # Store the chapter summary, count, and identifier in the database
             document = {
@@ -77,9 +79,21 @@ def process_epub(file_path, collection):
             logging.info("Processed new chapter %d: %s", chapter_count, chapter_summary)
         else:
             # Summary already exists, skip processing
+            chapter_summaries.append(existing_summary['chapter_summary'])
             logging.info("Chapter %d already processed, skipping", chapter_count)
 
     logging.info("Total chapters processed in the book: %d", chapter_count)
+    # Now summarizing all the chapters to get a unified summary of the book as a whole
+    consolidated_summary = summarize_book(" ".join(chapter_summaries))
+    logging.info("inserting book summary into database")
+    document = {
+        'book': book_title,
+        'book_summary': consolidated_summary
+    }
+    collection.insert_one(document)
+    logging.info("the book summary is %s", consolidated_summary)
+
+
 
 # Function to create indexes in MongoDB
 def create_indexes(collection):
@@ -105,6 +119,7 @@ def create_indexes(collection):
             logging.info(f"Index already exists: {index_spec['name']}")
 
 def book_main(file_path):
+    logging.info('Processing book: %s', file_path)
     try:
         collection = connect_to_mongodb()
         create_indexes(collection)

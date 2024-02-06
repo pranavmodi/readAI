@@ -119,6 +119,24 @@ def summarize_book_chapter(chapter_text):
     return consolidated_summary
 
 
+def summarize_book(chapter_summaries):
+    # get openai to summarize the list of chapter summaries into one consolidated summary for the entire book
+    client = create_client()
+    system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. "
+                     "You have read several summaries of different parts of a book. "
+                     "Please provide a concise, unified summary that captures the key points from these summaries.")
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": chapter_summaries}
+        ]
+    )
+
+    return completion.choices[0].message.content
+
+
+
 # Function to summarize a book chapter
 # def summarize_book_chapter(chapter_text):
 #     def create_client():

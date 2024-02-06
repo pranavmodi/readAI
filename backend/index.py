@@ -21,6 +21,7 @@ def get_books():
 
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
+    logging.info("Inside upload_epub")
     if 'file' not in request.files:
         return 'No epub file part', 400
 
@@ -35,6 +36,7 @@ def upload_epub():
         file.save(file_path)
 
         # Start a new thread for processing the ePub file
+        logging.info("Starting a new thread for processing the ePub file")
         thread = threading.Thread(target=book_main, args=(file_path,))
         thread.start()
 

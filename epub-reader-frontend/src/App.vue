@@ -46,8 +46,8 @@
         <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
           Load Default Book
         </button>
-        <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
-          Book Summary
+        <button @click="booksummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+          AI Assistance
         </button>
       </div>
     </footer>
@@ -118,6 +118,19 @@ export default {
 
       // Step 5: Resize the book rendition
       this.handleResize();
+
+      this.getCurrentChapterURI()
+    },
+
+    booksummary() {
+      // Step 3: Implement sending the EPUB file to the server
+      if (this.fileUploaded == false) {
+        this.uploadEpubFile();
+        console.log("going to upload file in booksummary");
+      }
+      else {
+        console.log("not going to upload again");
+      }
 
       this.getCurrentChapterURI()
     },
