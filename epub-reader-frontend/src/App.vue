@@ -8,7 +8,13 @@
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
         <!-- Book content here -->
       </div>
-      <!-- <div v-if="isSidePanelOpen" id="side-panel" class="w-80 bg-lightBlue-500 rounded text-black p-4"> -->
+      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center">
+        <div class="overlay-content">
+          <h2>Book Summary</h2>
+          <p>{{ currentBookSummary }}</p>
+          <button @click="toggleBookSummary" class="close-button">Close</button>
+        </div>
+      </div>
       <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
 
         <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
@@ -22,9 +28,9 @@
               <p>{{ currentChapterSummary }}</p>
             </div>
             <!-- AI Explanation Button -->
-            <!-- <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
+            <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
               AI Explanation
-            </button> -->
+            </button>
       </div>
     </main>
 
@@ -47,6 +53,9 @@
           Load Default Book
         </button>
         <button @click="booksummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+          Book Summary
+        </button>
+        <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           AI Assistance
         </button>
       </div>
@@ -76,6 +85,8 @@ export default {
   data() {
     return {
       book: null,
+      showBookSummary: false,
+      currentBookSummary: 'Default book summary',
       rendition: null,
       fontSize: 100,
       isSidePanelOpen: false,
@@ -131,8 +142,27 @@ export default {
       else {
         console.log("not going to upload again");
       }
+      this.showBookSummary = true;
+      // Fetch the book summary from the server
+      const url = `http://localhost:8000/book-summary/${encodeURIComponent(this.bookTitle)}`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Book Summary:', data.book_summary);
+          this.currentBookSummary = data.book_summary;
+        })
+        .catch(error => {
+          console.error('Error fetching book summary:', error);
+        });
+    },
 
-      this.getCurrentChapterURI()
+    toggleBookSummary() {
+      this.showBookSummary = !this.showBookSummary;
     },
 
     generateChapterIdentifier() {

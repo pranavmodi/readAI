@@ -40,6 +40,18 @@ def lookup_summary(chapter_id):
     else:
         # Handle case where no summary is found
         return None
+    
+def lookup_book_summary(book_title):
+    # Query the database for the summary
+    collection = connect_to_mongodb()
+    summary_document = collection.find_one({"book": book_title, "is_book_summary": True})
+
+    if summary_document:
+        # Return the summary if found
+        return summary_document['book_summary']
+    else:
+        # Handle case where no summary is found
+        return None
 
 # Function to process the ePub file
 def process_epub(file_path, collection):
@@ -84,14 +96,23 @@ def process_epub(file_path, collection):
 
     logging.info("Total chapters processed in the book: %d", chapter_count)
     # Now summarizing all the chapters to get a unified summary of the book as a whole
-    consolidated_summary = summarize_book(" ".join(chapter_summaries))
-    logging.info("inserting book summary into database")
-    document = {
-        'book': book_title,
-        'book_summary': consolidated_summary
-    }
-    collection.insert_one(document)
-    logging.info("the book summary is %s", consolidated_summary)
+
+    # First check if the summary already exists
+    existing_book_summary = lookup_book_summary(book_title)
+    if existing_book_summary:
+        logging.info("Book summary already exists, skipping")
+        return
+    else:
+        consolidated_summary = summarize_book(" ".join(chapter_summaries))
+        logging.info("inserting book summary into database")
+        document = {
+            'book': book_title,
+            'is_book_summary': True,  # Flag to indicate that this is a book summary
+            'book_summary': consolidated_summary
+        }
+        collection.insert_one(document)
+        logging.info("the book summary is %s", consolidated_summary)
+
 
 
 
