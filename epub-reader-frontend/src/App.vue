@@ -8,11 +8,13 @@
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
         <!-- Book content here -->
       </div>
-      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center">
-        <div class="overlay-content">
-          <h2>Book Summary</h2>
+      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
+        <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Book Summary</h2>
           <p>{{ currentBookSummary }}</p>
-          <button @click="toggleBookSummary" class="close-button">Close</button>
+          <button @click="toggleBookSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+            Close
+          </button>
         </div>
       </div>
       <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
