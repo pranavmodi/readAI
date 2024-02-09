@@ -11,12 +11,15 @@
       <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
         <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
           <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Book Summary</h2>
-          <p>{{ currentBookSummary }}</p>
-          <button @click="toggleBookSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+          <div class="summary-text" style="max-height: 70vh; overflow: auto;">
+            <div v-html="currentBookSummary"></div>
+          </div>
+          <button @click="closeSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
             Close
           </button>
         </div>
       </div>
+
       <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
 
         <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
@@ -54,7 +57,7 @@
         <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
           Load Default Book
         </button>
-        <button @click="booksummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
         <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
@@ -89,6 +92,7 @@ export default {
       book: null,
       showBookSummary: false,
       currentBookSummary: 'Default book summary',
+      chapterSummaryList: [],
       rendition: null,
       fontSize: 100,
       isSidePanelOpen: false,
@@ -106,6 +110,16 @@ export default {
   },
   methods: {
 
+    closeSummary() {
+      this.showBookSummary = false;
+      this.currentBookSummary = "";
+    },
+
+    openSummary() {
+      this.showBookSummary = true;
+      this.getBookSummary();
+    },
+
     getCurrentChapterURI() {
     if (this.rendition) {
       const currentLocation = this.rendition.currentLocation();
@@ -116,6 +130,14 @@ export default {
     }
     return null;
   },
+
+      constructBookSummary() {
+      // Construct the book summary from the chapter summaries
+      this.currentBookSummary = "";
+      for (let chapterSummary of this.chapterSummaryList) {
+        this.currentBookSummary += `<strong>${chapterSummary.chapter}</strong>: ${chapterSummary.summary}<br><br>`;
+      }
+    },
 
     aiAssist() {
       // Step 3: Implement sending the EPUB file to the server
@@ -150,6 +172,7 @@ export default {
       fetch(url)
         .then(response => {
           if (!response.ok) {
+            this.currentBookSummary = "Error fetching book summary";
             throw new Error('Network response was not ok');
           }
           return response.json();
@@ -163,13 +186,76 @@ export default {
         });
     },
 
-    toggleBookSummary() {
-      this.showBookSummary = !this.showBookSummary;
+    async getBookSummary() {
+      // This function populates the chapterSummaryList array with the chapter summaries
+      // Get the list of chapters
+      if (!this.book) {
+        console.error("Book not loaded");
+        return;
+      }
+      let chapters = await this.book.spine.spineItems;
+      
+      for (let chapter of chapters) {
+        await this.fetchChapterSummary(chapter.href);
+      }
     },
 
-    generateChapterIdentifier() {
+
+    fetchChapterSummary(chapterHref) {
+        return new Promise((resolve, reject) => {
+          // create endpoint combining book title and chapter href
+          const chapterIdentifier = this.generateChapterIdentifier(chapterHref);
+          const url = `http://localhost:8000/get-summary/${encodeURIComponent(chapterIdentifier)}`;
+          let attempts = 0;
+
+          const pollForSummary = () => {
+            fetch(url)
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+              })
+              .then(data => {
+                if (data.status === "success") {
+                  console.log(`Summary for ${chapterHref}:`, data.chapter_summary);
+                  // push the summary as a map with keys as chapter title and summary
+                  this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
+                  this.constructBookSummary();
+                  //this.chapterSummaryList.push(data.chapter_summary);
+                  resolve();
+                } else if (data.status === "pending") {
+                  attempts++;
+                  if (attempts < 5) { // Retry up to 5 times
+                    setTimeout(pollForSummary, 5000); // Poll every 5 seconds
+                  } else {
+                    console.log(`Maximum retries reached for ${chapterHref}`);
+                    resolve();
+                  }
+                } else {
+                  console.error(`Error fetching summary for ${chapterHref}:`, data.message);
+                  resolve();
+                }
+              })
+              .catch(error => {
+                console.error(`Error in fetching chapter summary for ${chapterHref}:`, error.message);
+                resolve();
+              });
+          };
+
+          pollForSummary();
+        });
+      },
+
+    generateChapterIdentifier(chapterName) {
       // Assuming bookTitle is set when the book is loaded
-      return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
+      // check if chapter name is passed
+      if (!chapterName) {
+        return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
+      }
+      else {
+        return `${this.bookTitle}_Chapter_${chapterName}`;
+      }
     },
 
     showChapterSummary() {
