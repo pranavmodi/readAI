@@ -79,11 +79,12 @@ def get_summary(chapter_id):
             "chapter_summary": summary_document
         })
     else:
-        # Handle case where no summary is found
+        # Handle case where summary is pending
         return jsonify({
-            "status": "error",
-            "message": "Summary not found for chapter ID: " + chapter_id
-        }), 404
+            "status": "pending",
+            "message": "Summary is pending for chapter ID: " + chapter_id
+        })
+
 
     
 

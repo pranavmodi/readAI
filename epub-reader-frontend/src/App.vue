@@ -157,34 +157,34 @@ export default {
       this.getCurrentChapterURI()
     },
 
-    booksummary() {
-      // Step 3: Implement sending the EPUB file to the server
-      if (this.fileUploaded == false) {
-        this.uploadEpubFile();
-        console.log("going to upload file in booksummary");
-      }
-      else {
-        console.log("not going to upload again");
-      }
-      this.showBookSummary = true;
-      // Fetch the book summary from the server
-      const url = `http://localhost:8000/book-summary/${encodeURIComponent(this.bookTitle)}`;
-      fetch(url)
-        .then(response => {
-          if (!response.ok) {
-            this.currentBookSummary = "Error fetching book summary";
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log('Book Summary:', data.book_summary);
-          this.currentBookSummary = data.book_summary;
-        })
-        .catch(error => {
-          console.error('Error fetching book summary:', error);
-        });
-    },
+    // booksummary() {
+    //   // Step 3: Implement sending the EPUB file to the server
+    //   if (this.fileUploaded == false) {
+    //     this.uploadEpubFile();
+    //     console.log("going to upload file in booksummary");
+    //   }
+    //   else {
+    //     console.log("not going to upload again");
+    //   }
+    //   this.showBookSummary = true;
+    //   // Fetch the book summary from the server
+    //   const url = `http://localhost:8000/book-summary/${encodeURIComponent(this.bookTitle)}`;
+    //   fetch(url)
+    //     .then(response => {
+    //       if (!response.ok) {
+    //         this.currentBookSummary = "Error fetching book summary";
+    //         throw new Error('Network response was not ok');
+    //       }
+    //       return response.json();
+    //     })
+    //     .then(data => {
+    //       console.log('Book Summary:', data.book_summary);
+    //       this.currentBookSummary = data.book_summary;
+    //     })
+    //     .catch(error => {
+    //       console.error('Error fetching book summary:', error);
+    //     });
+    // },
 
     async getBookSummary() {
       // This function populates the chapterSummaryList array with the chapter summaries
@@ -193,7 +193,15 @@ export default {
         console.error("Book not loaded");
         return;
       }
+      if (this.fileUploaded == false) {
+        this.uploadEpubFile();
+        console.log("going to upload file in booksummary");
+      }
+      else {
+        console.log("not going to upload again");
+      }
       let chapters = await this.book.spine.spineItems;
+      console.log(chapters[0]);
       
       for (let chapter of chapters) {
         await this.fetchChapterSummary(chapter.href);
@@ -230,14 +238,16 @@ export default {
                     setTimeout(pollForSummary, 5000); // Poll every 5 seconds
                   } else {
                     console.log(`Maximum retries reached for ${chapterHref}`);
-                    resolve();
+                    reject(new Error(`Maximum retries reached for ${chapterHref}`));
                   }
                 } else {
+                  
                   console.error(`Error fetching summary for ${chapterHref}:`, data.message);
                   resolve();
                 }
               })
               .catch(error => {
+                console.log('some error here')
                 console.error(`Error in fetching chapter summary for ${chapterHref}:`, error.message);
                 resolve();
               });
@@ -347,6 +357,7 @@ export default {
     if (file && file.type === "application/epub+zip") {
       this.epubFile = file;
       this.fileUploaded = false;
+      this.chapterSummaryList = [];
       console.log("File uploaded bool:", this.fileUploaded);
       const reader = new FileReader();
       reader.addEventListener("load", () => {
