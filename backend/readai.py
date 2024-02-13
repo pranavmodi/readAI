@@ -1,3 +1,4 @@
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
@@ -25,7 +26,7 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
-def split_into_chunks(text, max_token_length=3000):
+def split_into_chunks(chapter_text, max_token_length=3000):
     """
     Splits a text into chunks, each having a maximum of max_token_length tokens.
     This uses a rough approximation of 4 characters per token.
@@ -34,14 +35,16 @@ def split_into_chunks(text, max_token_length=3000):
     max_chunk_length = max_token_length * avg_chars_per_token
     chunks = []
 
-    while text:
+    # Use the correct variable name 'chapter_text'
+    while chapter_text:
         # Take the next chunk of text up to the max_chunk_length
-        chunk = text[:max_chunk_length]
+        chunk = chapter_text[:max_chunk_length]
         chunks.append(chunk)
         # Remove the processed chunk from the text
-        text = text[max_chunk_length:]
+        chapter_text = chapter_text[max_chunk_length:]
 
     return chunks
+
 
 
 # def split_into_chunks(text, max_token_length=4000, encoding='gpt-3.5-turbo'):
@@ -74,8 +77,8 @@ def split_into_chunks(text, max_token_length=3000):
 
 
 def summarize_chunk(chunk, client):
-    system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. Summarize this text chunk. "
-                     "Please provide a concise, unified summary that captures the key points from these summaries.")
+    system_prompt = ("You are an AI assistant skilled in summarizing book chapters. "
+                     "Please provide a concise summary of this text chunk, focusing on key points and main ideas.")
 
     completion = client.chat.completions.create(
       model="gpt-3.5-turbo",
@@ -89,12 +92,14 @@ def summarize_chunk(chunk, client):
 
 
 def consolidate_summaries(summaries, client):
-    system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. "
-                     "You have read several summaries of different parts of a chapter. "
-                     "Please provide a concise, unified summary that captures the key points from these summaries.")
+    system_prompt = ("You are an AI assistant. You have received summaries of a book chapter. "
+                     "Combine these into a single coherent summary. Return the result as a JSON object with keys "
+                     "'title', 'summary', and 'is_main_content'. Here's an example format: "
+                     "{'title': 'Chapter 1', 'summary': 'In this chapter, the main character...', 'is_main_content': 'Yes'}")
 
-    # Combine summaries into a single text
-    combined_summaries = " ".join(summaries)
+    # Check if summaries is a list and combine, else use it directly
+    combined_summaries = " ".join(summaries) if isinstance(summaries, list) else summaries
+
     completion = client.chat.completions.create(
       model="gpt-3.5-turbo",
       messages=[
@@ -103,19 +108,34 @@ def consolidate_summaries(summaries, client):
       ]
     )
 
-    return completion.choices[0].message.content
+    try:
+        # Attempt to parse the response as JSON
+        print(completion.choices[0].message.content)
+        unified_summary = json.loads(completion.choices[0].message.content)
+
+        # Validate the keys in the JSON response
+        if all(key in unified_summary for key in ["title", "summary", "is_main_content"]):
+            return unified_summary
+        else:
+            raise ValueError("Response JSON does not contain the required keys.")
+
+    except json.JSONDecodeError:
+        # Handle case where response is not a valid JSON
+        print("The response from the model is not valid JSON.")
+        return None
+    except ValueError as e:
+        # Handle other validation errors
+        print(e)
+        return None
+
+
 
 
 def summarize_book_chapter(chapter_text):
-    # Check if the chapter needs to be split into chunks
     client = create_client()
-    if num_tokens_from_string(chapter_text, 'r50k_base') > 3000:
-        chunks = split_into_chunks(chapter_text)
-        chunk_summaries = [summarize_chunk(chunk, client) for chunk in chunks]
-        consolidated_summary = consolidate_summaries(chunk_summaries, client)
-    else:
-        consolidated_summary = summarize_chunk(chapter_text, client)
-
+    chunks = split_into_chunks(chapter_text)
+    chunk_summaries = [summarize_chunk(chunk, client) for chunk in chunks]
+    consolidated_summary = consolidate_summaries(chunk_summaries, client)
     return consolidated_summary
 
 
@@ -125,13 +145,20 @@ def summarize_book(chapter_summaries):
     system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. "
                      "You have read several summaries of different parts of a book. "
                      "Please provide a concise, unified summary that captures the key points from these summaries.")
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": chapter_summaries}
-        ]
-    )
+    
+    # in case token count exceeds 4096 tokens, split into chunks
+    if num_tokens_from_string(chapter_summaries, 'r50k_base') > 4096:
+        chunks = split_into_chunks(chapter_summaries)
+        chunk_summaries = [summarize_chunk(chunk, client) for chunk in chunks]
+        consolidated_summary = consolidate_summaries(chunk_summaries, client)
+    else:
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": chapter_summaries}
+            ]
+        )
 
     return completion.choices[0].message.content
 
