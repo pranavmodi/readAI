@@ -16,8 +16,22 @@ def hello():
 
 @app.route('/get-books')
 def get_books():
-    books = ["1984", "Atlas Shrugged", "To Kill a Mockingbird", "The Great Gatsby", "One Hundred Years of Solitude", "Pride and Prejudice"]
-    return jsonify(books)
+    # Define the directory where the books are stored
+    books_directory = './freebooks'
+    
+    # List all files in the directory
+    try:
+        book_files = os.listdir(books_directory)
+    except FileNotFoundError:
+        # Handle the case where the directory does not exist
+        return jsonify({"error": "Books directory not found"}), 404
+
+    # Filter to include only .epub files
+    epub_books = [book for book in book_files if book.endswith('.epub')]
+
+    # Return the list of .epub books
+    return jsonify(epub_books)
+
 
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
