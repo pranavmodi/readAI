@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from process_book import book_main, lookup_summary, lookup_book_summary
@@ -14,23 +14,42 @@ CORS(app)
 def hello():
     return '<p> Hello, new  World!</p> '
 
+def clean_book_name(name):
+    """Converts file-based names to more readable titles by replacing hyphens and underscores with spaces and capitalizing each word."""
+    return ' '.join(word.capitalize() for word in name.replace('_', ' ').replace('-', ' ').split())
+
+
+
 @app.route('/get-books')
 def get_books():
-    # Define the directory where the books are stored
-    books_directory = './freebooks'
-    
-    # List all files in the directory
-    try:
-        book_files = os.listdir(books_directory)
-    except FileNotFoundError:
-        # Handle the case where the directory does not exist
-        return jsonify({"error": "Books directory not found"}), 404
+    # Define directories for books and thumbnails
+    books_dir = 'epubs'  # No need to include 'static/' here
+    thumbnails_dir = 'thumbnails'  # No need to include 'static/' here
 
-    # Filter to include only .epub files
-    epub_books = [book for book in book_files if book.endswith('.epub')]
+    # List .epub files in the books directory
+    book_files = [f for f in os.listdir(os.path.join('static', books_dir)) if f.endswith('.epub')]
 
-    # Return the list of .epub books
-    return jsonify(epub_books)
+    # Prepare the list of books with their epub paths and thumbnail URLs
+    books = []
+    for book_file in book_files:
+        book_name = os.path.splitext(book_file)[0]
+        epub_path = os.path.join(books_dir, book_file)
+        thumbnail_path = os.path.join(thumbnails_dir, book_name + '.jpg')
+
+        # Check if the thumbnail file exists
+        if os.path.exists(os.path.join('static', thumbnail_path)):
+            thumbnail_url = url_for('static', filename=thumbnail_path)
+        else:
+            thumbnail_url = None  # or a URL to a default placeholder image
+
+        books.append({
+            "name": clean_book_name(book_name),
+            "epub": url_for('static', filename=epub_path),
+            "thumbnail": thumbnail_url
+        })
+
+    return jsonify(books)
+
 
 
 @app.route('/upload-epub', methods=['POST'])

@@ -4,9 +4,8 @@
       <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
     </header>
 
-    <main :class="isSidePanelOpen ? 'flex-row' : 'flex-col'" class="flex flex-grow overflow-auto p-4">
+    <!-- <main :class="isSidePanelOpen ? 'flex-row' : 'flex-col'" class="flex flex-grow overflow-auto p-4">
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
-        <!-- Book content here -->
       </div>
       <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
         <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
@@ -19,25 +18,37 @@
           </button>
         </div>
       </div>
-
       <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
-
         <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
-            <!-- Chapter Summary Button -->
             <button @click="showChapterSummary" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block mb-2">
               Chapter Summary
             </button>
-            <!-- Chapter Summary Display -->
             <div v-if="currentChapterSummary" class="chapter-summary">
               <h5 class="font-semibold">Chapter Summary:</h5>
               <p>{{ currentChapterSummary }}</p>
             </div>
-            <!-- AI Explanation Button -->
             <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
               AI Explanation
             </button>
       </div>
-    </main>
+    </main> -->
+
+  <main class="flex flex-grow overflow-auto p-4">
+    <div v-if="showHomeScreen">
+      <home-screen booksUrl="http://localhost:8000/get-books" @selectBook="openHomeBook"></home-screen>
+    </div>
+
+    <div v-else>
+      <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
+      </div>
+
+      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
+      </div>
+
+      <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
+      </div>
+    </div>
+  </main>
 
     <footer class="flex justify-center bg-purple-800 p-4">
       <div class="button-group space-x-2">
@@ -54,9 +65,9 @@
           A+
         </button>
         <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
-        <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        <!-- <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
           Load Default Book
-        </button>
+        </button> -->
         <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
@@ -84,13 +95,20 @@
 
 <script>
 import ePub from 'epubjs';
+import HomeScreen from './components/HomeScreen.vue';
+
+
 
 export default {
+  components: {
+    HomeScreen
+  },
   name: 'App',
   data() {
     return {
       book: null,
       showBookSummary: false,
+      showHomeScreen: true,
       currentBookSummary: 'Default book summary',
       chapterSummaryList: [],
       rendition: null,
@@ -109,6 +127,11 @@ export default {
     };
   },
   methods: {
+
+    openHomeBook(book) {
+      this.showHomeScreen = false;
+      this.loadBook(book);
+    },
 
     closeSummary() {
       this.showBookSummary = false;
@@ -414,31 +437,31 @@ export default {
 },
 
 
-    loadDefaultBook() {
-      if (this.rendition) {
-        this.rendition.destroy();
-      }
-      const defaultBookPath = "/Heart-of-Darkness.epub";
+    // loadDefaultBook() {
+    //   if (this.rendition) {
+    //     this.rendition.destroy();
+    //   }
+    //   const defaultBookPath = "/Heart-of-Darkness.epub";
 
-      fetch(defaultBookPath)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.blob();
-        })
-        .then(blob => {
-          this.epubFile = new File([blob], "Heart-of-Darkness.epub", { type: 'application/epub+zip' });
-          return blob.arrayBuffer(); // Convert the Blob to an ArrayBuffer
-        })
-        .then(arrayBuffer => {
-          this.loadBook(arrayBuffer); // Load the book using the ArrayBuffer
-          this.handleResize();
-        })
-        .catch(error => {
-          console.error("Error loading default book:", error);
-        });
-    },
+    //   fetch(defaultBookPath)
+    //     .then(response => {
+    //       if (!response.ok) {
+    //         throw new Error('Network response was not ok');
+    //       }
+    //       return response.blob();
+    //     })
+    //     .then(blob => {
+    //       this.epubFile = new File([blob], "Heart-of-Darkness.epub", { type: 'application/epub+zip' });
+    //       return blob.arrayBuffer(); // Convert the Blob to an ArrayBuffer
+    //     })
+    //     .then(arrayBuffer => {
+    //       this.loadBook(arrayBuffer); // Load the book using the ArrayBuffer
+    //       this.handleResize();
+    //     })
+    //     .catch(error => {
+    //       console.error("Error loading default book:", error);
+    //     });
+    // },
 
 
     increaseFontSize() {
@@ -518,7 +541,7 @@ export default {
       window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
       this.handleResize(); // Adjust this to wait for the next DOM update cycle
-      this.loadDefaultBook(); // Load the default book on component mount
+      // this.loadDefaultBook(); // Load the default book on component mount
 
       // this.loadDefaultBook(); // Load the default book on component mount
       //this.loadDefaultBook(); // Load the default book on component mount

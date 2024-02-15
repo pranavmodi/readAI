@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.16",
+    "axios": "^1.6.7",
     "core-js": "^3.8.3",
     "epubjs": "^0.3.93",
     "postcss": "^8.4.33",
