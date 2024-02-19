@@ -34,21 +34,29 @@
     </main> -->
 
   <main class="flex flex-grow overflow-auto p-4">
-    <div v-if="showHomeScreen">
+
+    <div v-show="showHomeScreen">
       <home-screen booksUrl="http://localhost:8000/get-books" @selectBook="openHomeBook"></home-screen>
     </div>
 
-    <div v-else>
+    <div v-show="!showHomeScreen">
       <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
       </div>
 
       <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
-      </div>
-
-      <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
+        <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Book Summary</h2>
+          <div class="summary-text" style="max-height: 70vh; overflow: auto;">
+            <div v-html="currentBookSummary"></div>
+          </div>
+          <button @click="closeSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+            Close
+          </button>
+          </div>
       </div>
     </div>
-  </main>
+
+    </main>
 
     <footer class="flex justify-center bg-purple-800 p-4">
       <div class="button-group space-x-2">
@@ -73,6 +81,9 @@
         </button>
         <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           AI Assistance
+        </button>
+        <button @click="gotoHomePage" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+          Home
         </button>
       </div>
     </footer>
@@ -128,9 +139,33 @@ export default {
   },
   methods: {
 
-    openHomeBook(book) {
+    async openHomeBook(book) {
+      console.log("Book selected:", book);
       this.showHomeScreen = false;
-      this.loadBook(book);
+
+      try {
+        const response = await fetch(`http://localhost:8000${book.epub}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const epubBlob = await response.blob();
+        this.epubFile = new File([epubBlob], book.name, { type: 'application/epub+zip' });
+        this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
+      } catch (error) {
+        console.error("Error fetching EPUB file:", error);
+      }
+    },
+
+    gotoHomePage() {
+      console.log("Going to home page");
+      // this.isSidePanelOpen = false;
+      // this.showBookSummary = false;
+      this.showHomeScreen = true;
+      this.$nextTick(() => {
+    // Call handleResize after Vue has updated the DOM
+        this.handleResize();
+      });
     },
 
     closeSummary() {
@@ -139,6 +174,7 @@ export default {
     },
 
     openSummary() {
+      console.log("Opening book summary");
       this.showBookSummary = true;
       this.getBookSummary();
     },

@@ -1,7 +1,7 @@
 <template>
   <div class="home-screen flex justify-center">
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" style="margin: auto;">
-      <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full">
+      <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full" @click="selectBook(book)">
         <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-full h-auto rounded-lg shadow-md object-cover" style="height: 400px;"/> <!-- Fixed height for images -->
         <h3 class="text-center mt-2">{{ book.name }}</h3>
       </div>
