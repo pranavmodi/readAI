@@ -4,35 +4,6 @@
       <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
     </header>
 
-    <!-- <main :class="isSidePanelOpen ? 'flex-row' : 'flex-col'" class="flex flex-grow overflow-auto p-4">
-      <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
-      </div>
-      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
-        <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Book Summary</h2>
-          <div class="summary-text" style="max-height: 70vh; overflow: auto;">
-            <div v-html="currentBookSummary"></div>
-          </div>
-          <button @click="closeSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-            Close
-          </button>
-        </div>
-      </div>
-      <div v-if="isSidePanelOpen" id="side-panel" class="w-custom bg-lightBlue-500 rounded text-black p-4">
-        <h2 class="font-semibold text-lg mb-4">AI Insights</h2>
-            <button @click="showChapterSummary" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block mb-2">
-              Chapter Summary
-            </button>
-            <div v-if="currentChapterSummary" class="chapter-summary">
-              <h5 class="font-semibold">Chapter Summary:</h5>
-              <p>{{ currentChapterSummary }}</p>
-            </div>
-            <button @click="showAIExplanation" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded block">
-              AI Explanation
-            </button>
-      </div>
-    </main> -->
-
   <main class="flex flex-grow overflow-auto p-4">
 
     <div v-show="showHomeScreen">
@@ -169,6 +140,7 @@ export default {
     },
 
     closeSummary() {
+      console.log("Closing book summary");
       this.showBookSummary = false;
       this.currentBookSummary = "";
     },
@@ -260,7 +232,6 @@ export default {
         console.log("not going to upload again");
       }
       let chapters = await this.book.spine.spineItems;
-      console.log(chapters[0]);
       
       for (let chapter of chapters) {
         await this.fetchChapterSummary(chapter.href);
