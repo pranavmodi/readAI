@@ -113,6 +113,8 @@ export default {
     async openHomeBook(book) {
       console.log("Book selected:", book);
       this.showHomeScreen = false;
+      this.epubFile = null;
+      this.chapterSummaryList = [];
 
       try {
         const response = await fetch(`http://localhost:8000${book.epub}`);
@@ -188,35 +190,6 @@ export default {
       this.getCurrentChapterURI()
     },
 
-    // booksummary() {
-    //   // Step 3: Implement sending the EPUB file to the server
-    //   if (this.fileUploaded == false) {
-    //     this.uploadEpubFile();
-    //     console.log("going to upload file in booksummary");
-    //   }
-    //   else {
-    //     console.log("not going to upload again");
-    //   }
-    //   this.showBookSummary = true;
-    //   // Fetch the book summary from the server
-    //   const url = `http://localhost:8000/book-summary/${encodeURIComponent(this.bookTitle)}`;
-    //   fetch(url)
-    //     .then(response => {
-    //       if (!response.ok) {
-    //         this.currentBookSummary = "Error fetching book summary";
-    //         throw new Error('Network response was not ok');
-    //       }
-    //       return response.json();
-    //     })
-    //     .then(data => {
-    //       console.log('Book Summary:', data.book_summary);
-    //       this.currentBookSummary = data.book_summary;
-    //     })
-    //     .catch(error => {
-    //       console.error('Error fetching book summary:', error);
-    //     });
-    // },
-
     async getBookSummary() {
       // This function populates the chapterSummaryList array with the chapter summaries
       // Get the list of chapters
@@ -256,7 +229,6 @@ export default {
               })
               .then(data => {
                 if (data.status === "success") {
-                  console.log(`Summary for ${chapterHref}:`, data.chapter_summary);
                   // push the summary as a map with keys as chapter title and summary
                   this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
                   this.constructBookSummary();
