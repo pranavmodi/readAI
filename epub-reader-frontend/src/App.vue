@@ -5,7 +5,7 @@
     </header>
 
     <main class="flex flex-grow overflow-auto p-4">
-      <home-screen v-if="showHomeScreen" @selectBook="openHomeBook" @fileSelected="uploadBook"/>
+      <home-screen v-if="showHomeScreen" @selectBook="openSelectedBook" @fileSelected="uploadBook"/>
       <reading-area v-else :selectedBook="selectedBook" @closeBook="closeBook" />
     </main>
 
@@ -14,24 +14,27 @@
       <div v-if="showHomeScreen">
         <!-- Buttons for Home Screen -->
         <!-- Upload EPUB File Button -->
-        <button @click="uploadEpubFile" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        <!-- <input type="file" id="file-input" hidden @change="handleFileChange" accept=".epub"/> -->
+        <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        <!-- <button @click="uploadEpubFile" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        
           Upload EPUB File
-        </button>
+        </button> -->
       </div>
       <div v-else>
         <!-- Buttons for Reading Area -->
         <!-- Increase / Decrease Font Size Buttons -->
-        <button class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="increaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
           A+
         </button>
-        <button class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="decreaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
           A-
         </button>
         <!-- Book Summary Button -->
         <button class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
-        <button class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="gotoHomePage" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Home
         </button>
       </div>
@@ -93,8 +96,25 @@ export default {
   },
   methods: {
 
-    async openHomeBook(book) {
-      console.log("Book selected:", book);
+    onFileChange(e) {
+    const file = e.target.files[0];
+    if (file && file.type === "application/epub+zip") {
+      this.epubFile = file;
+      this.fileUploaded = false;
+      this.chapterSummaryList = [];
+      this.showHomeScreen = false;
+      console.log("File uploaded bool:", this.fileUploaded);
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        this.loadBook(reader.result); // reader.result contains the ArrayBuffer
+      }, false);
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("Please select an EPUB file.");
+    }
+},
+
+    async openSelectedBook(book) {
       this.showHomeScreen = false;
       this.epubFile = null;
       this.chapterSummaryList = [];
@@ -108,6 +128,10 @@ export default {
         const epubBlob = await response.blob();
         this.epubFile = new File([epubBlob], book.name, { type: 'application/epub+zip' });
         this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
+        // after nexttick do handleresize
+        // this.$nextTick(() => {
+        //   this.handleResize();
+        // });
       } catch (error) {
         console.error("Error fetching EPUB file:", error);
       }
@@ -132,8 +156,6 @@ export default {
 
     gotoHomePage() {
       console.log("Going to home page");
-      // this.isSidePanelOpen = false;
-      // this.showBookSummary = false;
       this.showHomeScreen = true;
       this.$nextTick(() => {
     // Call handleResize after Vue has updated the DOM
@@ -351,6 +373,10 @@ export default {
 
 
     handleResize() {
+      if (!this.rendition) {
+        console.error("Rendition is not initialized.");
+        return;
+      }
       console.log("Rendition in handleResize:", this.rendition);
       // console.alert("handleResize called");
       if (this.rendition) {
@@ -377,7 +403,6 @@ export default {
         this.windowSize.height = availableHeight - 200;
 
         // Resize the rendition to fit the new available space
-        console.log("width and height:", this.windowSize.width, this.windowSize.height);
         this.rendition.resize(this.windowSize.width, this.windowSize.height);
       }
 },
@@ -401,6 +426,7 @@ export default {
         this.rendition.destroy();
       }
       this.book = ePub(arrayBuffer);
+      console.log("Book after loading:", this.book);
       this.book.ready.then(() => {
         this.rendition = this.book.renderTo("book-area", {
           width: this.windowSize.width, 
@@ -457,7 +483,7 @@ export default {
     this.$nextTick(() => {
       window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
-      this.handleResize(); // Adjust this to wait for the next DOM update cycle
+      // this.handleResize(); // Adjust this to wait for the next DOM update cycle
 
     });    
   },

@@ -1,19 +1,15 @@
 <template>
   <div class="home-screen flex flex-col items-center justify-center">
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 my-4" style="margin: auto;">
+    <!-- Directly apply flex properties to the grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 my-4" style="width: fit-content; margin: auto;">
       <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full" @click="selectBook(book)">
-        <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-full h-auto rounded-lg shadow-md object-cover" style="height: 400px;"/> <!-- Fixed height for images -->
+        <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-full h-auto rounded-lg shadow-md object-cover" style="height: 400px;"/>
         <h3 class="text-center mt-2">{{ book.name }}</h3>
       </div>
     </div>
-    <!-- <div class="upload-area mt-6">
-      <input type="file" id="file-upload" hidden @change="onFileChange" accept=".epub"/>
-      <label for="file-upload" class="upload-button">
-        Upload EPUB File
-      </label>
-    </div> -->
   </div>
 </template>
+
 
 
   
@@ -85,6 +81,12 @@
 
 .book-thumbnail:hover {
   transform: translateY(-5px);
+}
+
+.grid-container {
+  width: 100%; /* Full width */
+  display: flex; /* Flex container */
+  justify-content: center; /* Center horizontally */
 }
 
 .upload-button {
