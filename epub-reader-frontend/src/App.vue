@@ -6,7 +6,10 @@
 
     <main class="flex flex-grow overflow-auto p-4">
       <home-screen v-if="showHomeScreen" @selectBook="openSelectedBook" @fileSelected="uploadBook"/>
-      <reading-area v-else :selectedBook="selectedBook" @closeBook="closeBook" />
+      <reading-area v-else 
+      :showBookSummary="showBookSummary"
+      :currentBookSummary="currentBookSummary"
+      @closeSummary="showBookSummary = false"/>
     </main>
 
     <footer class="flex justify-center bg-purple-800 p-4">
@@ -31,7 +34,7 @@
           A-
         </button>
         <!-- Book Summary Button -->
-        <button class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
         <button @click="gotoHomePage" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
@@ -377,7 +380,6 @@ export default {
         console.error("Rendition is not initialized.");
         return;
       }
-      console.log("Rendition in handleResize:", this.rendition);
       // console.alert("handleResize called");
       if (this.rendition) {
         // Get the window's width and height
@@ -438,7 +440,8 @@ export default {
         })
         this.rendition.themes.fontSize(`${this.fontSize}%`);
         this.rendition.display();
-        console.log("Rendition after display:", this.rendition);
+        // resize after nextick
+
         this.handleResize();
         
       }).catch(error => {
