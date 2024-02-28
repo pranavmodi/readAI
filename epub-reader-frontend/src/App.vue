@@ -4,6 +4,25 @@
       <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
     </header>
 
+    <main class="flex flex-grow overflow-auto p-4">
+      <home-screen v-if="showHomeScreen" @selectBook="openHomeBook" @fileSelected="uploadBook"/>
+      <reading-area v-else :selectedBook="selectedBook" @closeBook="closeBook" />
+    </main>
+
+    <footer class="flex justify-center bg-purple-800 p-4">
+      <!-- Footer content -->
+    </footer>
+  </div>
+</template>
+
+
+
+<!-- <template>
+  <div id="app" class="flex flex-col h-screen bg-coolGray-100">
+    <header class="bg-indigo-700 text-white text-center py-4">
+      <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
+    </header>
+
   <main class="flex flex-grow overflow-auto p-4">
 
     <div v-show="showHomeScreen">
@@ -44,10 +63,10 @@
           A+
         </button>
         <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
-        <!-- <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
           Load Default Book
         </button> -->
-        <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <!-- <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
         <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
@@ -59,7 +78,7 @@
       </div>
     </footer>
   </div>
-</template>
+</template> -->
 
 
 <style>
@@ -78,12 +97,14 @@
 <script>
 import ePub from 'epubjs';
 import HomeScreen from './components/HomeScreen.vue';
+import ReadingArea from './components/ReadingArea.vue';
 
 
 
 export default {
   components: {
-    HomeScreen
+    HomeScreen,
+    ReadingArea
   },
   name: 'App',
   data() {
@@ -127,6 +148,24 @@ export default {
         this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
       } catch (error) {
         console.error("Error fetching EPUB file:", error);
+      }
+    },
+
+    uploadBook(e) {
+      console.log("Book to be uploaded");
+      const file = e.target.files[0];
+      if (file && file.type === "application/epub+zip") {
+        this.epubFile = file;
+        this.fileUploaded = false;
+        this.chapterSummaryList = [];
+        console.log("File uploaded bool:", this.fileUploaded);
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          this.loadBook(reader.result); // reader.result contains the ArrayBuffer
+        }, false);
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert("Please select an EPUB file.");
       }
     },
 
@@ -354,22 +393,7 @@ export default {
   },
 
 
-  onFileChange(e) {
-    const file = e.target.files[0];
-    if (file && file.type === "application/epub+zip") {
-      this.epubFile = file;
-      this.fileUploaded = false;
-      this.chapterSummaryList = [];
-      console.log("File uploaded bool:", this.fileUploaded);
-      const reader = new FileReader();
-      reader.addEventListener("load", () => {
-        this.loadBook(reader.result); // reader.result contains the ArrayBuffer
-      }, false);
-      reader.readAsArrayBuffer(file);
-    } else {
-      alert("Please select an EPUB file.");
-    }
-},
+
 
 
     // handleResize() {
