@@ -10,75 +10,37 @@
     </main>
 
     <footer class="flex justify-center bg-purple-800 p-4">
-      <!-- Footer content -->
-    </footer>
-  </div>
-</template>
-
-
-
-<!-- <template>
-  <div id="app" class="flex flex-col h-screen bg-coolGray-100">
-    <header class="bg-indigo-700 text-white text-center py-4">
-      <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
-    </header>
-
-  <main class="flex flex-grow overflow-auto p-4">
-
-    <div v-show="showHomeScreen">
-      <home-screen booksUrl="http://localhost:8000/get-books" @selectBook="openHomeBook"></home-screen>
-    </div>
-
-    <div v-show="!showHomeScreen">
-      <div id="book-area" :class="isSidePanelOpen ? 'flex-grow' : 'w-full'" class="bg-white shadow-md rounded p-4">
+      <!-- Conditional Footer content -->
+      <div v-if="showHomeScreen">
+        <!-- Buttons for Home Screen -->
+        <!-- Upload EPUB File Button -->
+        <button @click="uploadEpubFile" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+          Upload EPUB File
+        </button>
       </div>
-
-      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-75 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
-        <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Book Summary</h2>
-          <div class="summary-text" style="max-height: 70vh; overflow: auto;">
-            <div v-html="currentBookSummary"></div>
-          </div>
-          <button @click="closeSummary" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-            Close
-          </button>
-          </div>
-      </div>
-    </div>
-
-    </main>
-
-    <footer class="flex justify-center bg-purple-800 p-4">
-      <div class="button-group space-x-2">
-        <button @click="prevPage" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
-          Previous
-        </button>
-        <button @click="nextPage" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
-          Next
-        </button>
-        <button @click="decreaseFontSize" class="bg-violet-500 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded">
-          A-
-        </button>
-        <button @click="increaseFontSize" class="bg-violet-500 hover:bg-violet-700 text-white font-semibold py-2 px-4 rounded">
+      <div v-else>
+        <!-- Buttons for Reading Area -->
+        <!-- Increase / Decrease Font Size Buttons -->
+        <button class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
           A+
         </button>
-        <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
-        <button @click="loadDefaultBook" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
-          Load Default Book
-        </button> -->
-        <!-- <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+          A-
+        </button>
+        <!-- Book Summary Button -->
+        <button class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Book Summary
         </button>
-        <button @click="aiAssist" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
-          AI Assistance
-        </button>
-        <button @click="gotoHomePage" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
           Home
         </button>
       </div>
     </footer>
+
+    <!-- Home Button (Top Left of the Screen) -->
+
   </div>
-</template> -->
+</template>
 
 
 <style>
@@ -158,7 +120,6 @@ export default {
         this.epubFile = file;
         this.fileUploaded = false;
         this.chapterSummaryList = [];
-        console.log("File uploaded bool:", this.fileUploaded);
         const reader = new FileReader();
         reader.addEventListener("load", () => {
           this.loadBook(reader.result); // reader.result contains the ArrayBuffer
@@ -340,10 +301,6 @@ export default {
         });
     },
 
-    // showChapterSummary() {
-    //   // Logic to show chapter summary
-    //   console.log('Chapter Summary button clicked');
-    // },
     showAIExplanation() {
       // Logic to show AI explanation
       console.log('AI Explanation button clicked');
@@ -393,20 +350,6 @@ export default {
   },
 
 
-
-
-
-    // handleResize() {
-    //   console.log("Rendition in handleResize:", this.rendition);
-    //   if (this.rendition) {
-    //     this.windowSize.width = window.innerWidth;
-    //     this.windowSize.height = window.innerHeight;
-    //     this.rendition.resize(this.windowSize.width, this.windowSize.height);
-    //   }
-    // },
-
-
-
     handleResize() {
       console.log("Rendition in handleResize:", this.rendition);
       // console.alert("handleResize called");
@@ -438,34 +381,6 @@ export default {
         this.rendition.resize(this.windowSize.width, this.windowSize.height);
       }
 },
-
-
-    // loadDefaultBook() {
-    //   if (this.rendition) {
-    //     this.rendition.destroy();
-    //   }
-    //   const defaultBookPath = "/Heart-of-Darkness.epub";
-
-    //   fetch(defaultBookPath)
-    //     .then(response => {
-    //       if (!response.ok) {
-    //         throw new Error('Network response was not ok');
-    //       }
-    //       return response.blob();
-    //     })
-    //     .then(blob => {
-    //       this.epubFile = new File([blob], "Heart-of-Darkness.epub", { type: 'application/epub+zip' });
-    //       return blob.arrayBuffer(); // Convert the Blob to an ArrayBuffer
-    //     })
-    //     .then(arrayBuffer => {
-    //       this.loadBook(arrayBuffer); // Load the book using the ArrayBuffer
-    //       this.handleResize();
-    //     })
-    //     .catch(error => {
-    //       console.error("Error loading default book:", error);
-    //     });
-    // },
-
 
     increaseFontSize() {
       if (this.rendition) {
@@ -540,14 +455,9 @@ export default {
 
   mounted() {
     this.$nextTick(() => {
-      // this.loadDefaultBook(); // Load the default book on component mount
       window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
       this.handleResize(); // Adjust this to wait for the next DOM update cycle
-      // this.loadDefaultBook(); // Load the default book on component mount
-
-      // this.loadDefaultBook(); // Load the default book on component mount
-      //this.loadDefaultBook(); // Load the default book on component mount
 
     });    
   },

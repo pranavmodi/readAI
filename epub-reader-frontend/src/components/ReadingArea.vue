@@ -8,10 +8,6 @@
       <div class="button-group space-x-2">
         <!-- Buttons for navigation, font size adjustment, etc. -->
       </div>
-  
-      <button @click="closeBook" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
-        Close Book
-      </button>
     </div>
   </template>
   
@@ -19,11 +15,6 @@
   export default {
     props: {
       selectedBook: Object
-    },
-    methods: {
-      closeBook() {
-        this.$emit('closeBook');
-      }
     }
   };
   </script>

@@ -6,12 +6,12 @@
         <h3 class="text-center mt-2">{{ book.name }}</h3>
       </div>
     </div>
-    <div class="upload-area mt-6">
+    <!-- <div class="upload-area mt-6">
       <input type="file" id="file-upload" hidden @change="onFileChange" accept=".epub"/>
       <label for="file-upload" class="upload-button">
         Upload EPUB File
       </label>
-    </div>
+    </div> -->
   </div>
 </template>
 
