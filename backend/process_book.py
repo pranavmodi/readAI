@@ -103,6 +103,7 @@ def process_epub(file_path, collection):
         logging.info("Book summary already exists, skipping")
         return
     else:
+        logging.info(chapter_summaries, "chapter_summaries")
         consolidated_summary = summarize_book(" ".join(chapter_summaries))
         logging.info("inserting book summary into database")
         document = {

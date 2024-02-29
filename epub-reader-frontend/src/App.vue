@@ -167,13 +167,12 @@ export default {
     },
 
     closeSummary() {
-      console.log("Closing book summary");
       this.showBookSummary = false;
       this.currentBookSummary = "";
+      this.chapterSummaryList = [];
     },
 
     openSummary() {
-      console.log("Opening book summary");
       this.showBookSummary = true;
       this.getBookSummary();
     },
@@ -183,7 +182,6 @@ export default {
       const currentLocation = this.rendition.currentLocation();
       if (currentLocation && currentLocation.start) {
          this.currentChapterURI = currentLocation.start.href; // This is the URI of the current chapter
-         console.log("Current chapter URI:", this.currentChapterURI);
       }
     }
     return null;
@@ -193,27 +191,28 @@ export default {
       // Construct the book summary from the chapter summaries
       this.currentBookSummary = "";
       for (let chapterSummary of this.chapterSummaryList) {
-        this.currentBookSummary += `<strong>${chapterSummary.chapter}</strong>: ${chapterSummary.summary}<br><br>`;
+        // {is_main_content: 'Yes', summary: "This chapter gives insights into the book 'Make So…s' with a mention of the Steve Jobs Archive logo.", title: 'Chapter: Make Something Wonderful: Steve Jobs in his own words'}
+        this.currentBookSummary += `<strong>${chapterSummary.summary.title}</strong>: ${chapterSummary.summary.summary}<br><br>`;
       }
     },
 
-    aiAssist() {
-      // Step 3: Implement sending the EPUB file to the server
-      if (this.fileUploaded == false) {
-        this.uploadEpubFile();
-        console.log("going to upload file");
-      }
-      else {
-        console.log("not going to upload again");
-      }
-      // Step 4: Open the side panel
-      this.toggleSidePanel();
+    // aiAssist() {
+    //   // Step 3: Implement sending the EPUB file to the server
+    //   if (this.fileUploaded == false) {
+    //     this.uploadEpubFile();
+    //     console.log("going to upload file");
+    //   }
+    //   else {
+    //     console.log("not going to upload again");
+    //   }
+    //   // Step 4: Open the side panel
+    //   this.toggleSidePanel();
 
-      // Step 5: Resize the book rendition
-      this.handleResize();
+    //   // Step 5: Resize the book rendition
+    //   this.handleResize();
 
-      this.getCurrentChapterURI()
-    },
+    //   this.getCurrentChapterURI()
+    // },
 
     async getBookSummary() {
       // This function populates the chapterSummaryList array with the chapter summaries
@@ -224,16 +223,14 @@ export default {
       }
       if (this.fileUploaded == false) {
         this.uploadEpubFile();
-        console.log("going to upload file in booksummary");
-      }
-      else {
-        console.log("not going to upload again");
       }
       let chapters = await this.book.spine.spineItems;
       
       for (let chapter of chapters) {
         await this.fetchChapterSummary(chapter.href);
       }
+      this.constructBookSummary();
+
     },
 
 
@@ -256,7 +253,6 @@ export default {
                 if (data.status === "success") {
                   // push the summary as a map with keys as chapter title and summary
                   this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
-                  this.constructBookSummary();
                   //this.chapterSummaryList.push(data.chapter_summary);
                   resolve();
                 } else if (data.status === "pending") {
@@ -348,6 +344,7 @@ export default {
 
   uploadEpubFile() {
     // Check if this.epubFile is a File object and has a size greater than 0
+    console.log('going to upload book now')
     if (this.epubFile && this.epubFile.size > 0) {
       const formData = new FormData();
       formData.append('file', this.epubFile); // Assuming this.epubFile holds the file object
@@ -363,7 +360,7 @@ export default {
         return response.json();
       })
       .then(data => {
-        console.log('Success:', data);
+        console.log('File upload Success:', data);
         this.fileUploaded = true;
       })
       .catch((error) => {
