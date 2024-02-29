@@ -98,7 +98,7 @@ def book_summary(book_title):
         }), 404
 
 
-@app.route('/get-summary/<path:chapter_id>', methods=['GET'])
+@app.route('/chapter-summary/<path:chapter_id>', methods=['GET'])
 def get_summary(chapter_id):
     # Query the database for the summary
     logging.info("Inside get_summary, the requested chapter_id is %s", chapter_id)

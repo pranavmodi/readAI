@@ -26,12 +26,11 @@
     props: ['booksUrl'],
     methods: {
       selectBook(book) {
+        console.log("Book selected:", book);
         this.$emit('selectBook', book);
       },
       
       fetchBooks() {
-        console.log(this.booksUrl);
-        console.log("Fetching books");
         axios.get("/get-books")
           .then(response => {
             this.books = response.data.map(book => {

@@ -54,8 +54,8 @@ def lookup_book_summary(book_title):
         return None
 
 # Function to process the ePub file
-def process_epub(file_path, collection):
-    logging.info("Inside process_epub")
+def process_epub(file_path, collection, rewrite=False):
+    logging.info("Inside process_epub, the file_path is %s", file_path)
     book = epub.read_epub(file_path)
     chapter_count = 0  # Initialize a counter for chapters
     book_title = book.get_metadata('DC', 'title')[0][0]
@@ -69,13 +69,14 @@ def process_epub(file_path, collection):
         # Create a unique identifier for each chapter, for example, using book title and chapter number
 
         chapter_uri = item.file_name
-        logging.info("chapter_uri is %s", chapter_uri)
         chapter_identifier = f"{book_title}_Chapter_{chapter_uri}"
 
         # Check if the summary for this chapter already exists in the database
         existing_summary = collection.find_one({"chapter_identifier": chapter_identifier})
-
-        if existing_summary is None:
+        # logging.info("existing_summary is %s", existing_summary)
+        if existing_summary is None or rewrite is True or existing_summary['chapter_summary'] is None:
+            # logging.info("Going to process again for chapter number %s", chapter_count)
+            # logging.info("checking if null, the existing_summary is %s", existing_summary['chapter_summary'])
             # Summary not found in database, generate it
             chapter_summary = summarize_book_chapter(chapter_content)
             chapter_summaries.append(chapter_summary)
@@ -87,32 +88,32 @@ def process_epub(file_path, collection):
                 'chapter_summary': chapter_summary,
                 'chapter_identifier': chapter_identifier
             }
+
+            # will pretty print log the created document variable in a readable manner
+            # logging.info("going to insert, the document is %s", document)
             collection.insert_one(document)
-            logging.info("Processed new chapter %d: %s", chapter_count, chapter_summary)
+            # check if the insertion was successful
+            # logging.info("inserted document is %s", collection.find_one({"chapter_identifier": chapter_identifier}))
         else:
             # Summary already exists, skip processing
-            chapter_summaries.append(existing_summary['chapter_summary'])
-            logging.info("Chapter %d already processed, skipping", chapter_count)
+            chapter_summaries.append(existing_summary)
 
-    logging.info("Total chapters processed in the book: %d", chapter_count)
     # Now summarizing all the chapters to get a unified summary of the book as a whole
 
     # First check if the summary already exists
     existing_book_summary = lookup_book_summary(book_title)
     if existing_book_summary:
-        logging.info("Book summary already exists, skipping")
+        logging.info("Book summary already exists, skipping processing for book: %s", existing_book_summary)
         return
     else:
-        logging.info(chapter_summaries, "chapter_summaries")
-        consolidated_summary = summarize_book(" ".join(chapter_summaries))
-        logging.info("inserting book summary into database")
+        # join together all chapter summaries which have is_main_content as True
+        consolidated_summary = summarize_book(" ".join(cs['summary'] for cs in chapter_summaries if cs['is_main_content']))
         document = {
             'book': book_title,
             'is_book_summary': True,  # Flag to indicate that this is a book summary
             'book_summary': consolidated_summary
         }
         collection.insert_one(document)
-        logging.info("the book summary is %s", consolidated_summary)
 
 
 
@@ -128,6 +129,7 @@ def create_indexes(collection):
 
     # Retrieve current indexes on the collection
     existing_indexes = collection.list_indexes()
+    logging.info("Existing indexes: %s", existing_indexes)
 
     # Create a set of existing index names
     existing_index_names = {index['name'] for index in existing_indexes}
@@ -146,7 +148,7 @@ def book_main(file_path):
         collection = connect_to_mongodb()
         create_indexes(collection)
 
-        process_epub(file_path, collection)
+        process_epub(file_path, collection, False)
         logging.info("Successfully processed and inserted into MongoDB")
 
         # Optionally, create indexes after processing if they are specific to the processed data

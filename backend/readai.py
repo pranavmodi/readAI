@@ -92,10 +92,25 @@ def summarize_chunk(chunk, client):
 
 
 def consolidate_summaries(summaries, client):
+    # system_prompt = ("You are an AI assistant. You have received summaries of a book chapter. "
+    #                  "Combine these into a single coherent summary. Return the result as a JSON object with keys "
+    #                  "Quotes Around Keys and String Values: In JSON, both keys and string values must be enclosed in double quotes ("). Single quotes (') are not valid in JSON.
+    #                 "Boolean Values: Boolean values in JSON are represented as true or false (all lowercase), without quotes. If 'Yes' is intended to be a boolean, it should be replaced with true or false.
+    #                  "'title', 'summary', and 'is_main_content'. Here's an example: "
+    #                  "{'title': 'Chapter 1', 'summary': 'In this chapter, the main character...', 'is_main_content': 'Yes'}")
+
     system_prompt = ("You are an AI assistant. You have received summaries of a book chapter. "
-                     "Combine these into a single coherent summary. Return the result as a JSON object with keys "
-                     "'title', 'summary', and 'is_main_content'. Here's an example format: "
-                     "{'title': 'Chapter 1', 'summary': 'In this chapter, the main character...', 'is_main_content': 'Yes'}")
+                 "Combine these into a single coherent summary. Return the result as a JSON object. "
+                 "When creating the JSON object, remember to: "
+                 "0. 3 keys must be included - 'title', 'summary', and 'is_main_content'. create an approprite title for the chapter, a summary and a boolean value for is_main_content. By main content it means if the chapter is the main content of the book, and not things like preface, introduction, etc."
+                 "1. Enclose keys and string values in double quotes. "
+                 "2. Use true or false for boolean values, without quotes. true and fasle should be all lowercase."
+                 "3. Ensure proper JSON structure with commas separating key-value pairs and curly braces enclosing the object. "
+                 "Here are a couple of examples of a properly formatted JSON object. Note the lowercase true and false. "
+                 "{\"title\": \"Chapter 1\", \"summary\": \"This is the copyrights page ....\", \"is_main_content\": false}"
+                 "{\"title\": \"Chapter 1\", \"summary\": \"The main character does something silly...\", \"is_main_content\": true}"
+                 "Before returning, validate the json object to ensure it has the correct keys and values. Especially that the boolean are all lowercase.")
+
 
     # Check if summaries is a list and combine, else use it directly
     combined_summaries = " ".join(summaries) if isinstance(summaries, list) else summaries

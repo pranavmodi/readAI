@@ -119,8 +119,8 @@ export default {
 
     async openSelectedBook(book) {
       this.showHomeScreen = false;
-      this.epubFile = null;
       this.chapterSummaryList = [];
+      this.currentBookSummary = "";
 
       try {
         const response = await fetch(`http://localhost:8000${book.epub}`);
@@ -138,6 +138,7 @@ export default {
       } catch (error) {
         console.error("Error fetching EPUB file:", error);
       }
+      this.getBookSummary()
     },
 
     uploadBook(e) {
@@ -174,7 +175,7 @@ export default {
 
     openSummary() {
       this.showBookSummary = true;
-      this.getBookSummary();
+      // this.getBookSummary();
     },
 
     getCurrentChapterURI() {
@@ -222,6 +223,7 @@ export default {
         return;
       }
       if (this.fileUploaded == false) {
+        // The following line triggers the book_main using upload epub API call
         this.uploadEpubFile();
       }
       let chapters = await this.book.spine.spineItems;
@@ -238,7 +240,7 @@ export default {
         return new Promise((resolve, reject) => {
           // create endpoint combining book title and chapter href
           const chapterIdentifier = this.generateChapterIdentifier(chapterHref);
-          const url = `http://localhost:8000/get-summary/${encodeURIComponent(chapterIdentifier)}`;
+          const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
           let attempts = 0;
 
           const pollForSummary = () => {
@@ -296,7 +298,7 @@ export default {
       console.log(`Fetching summary for chapter: ${chapterIdentifier}`);
 
       // URL of your Flask endpoint
-      const url = `http://localhost:8000/get-summary/${encodeURIComponent(chapterIdentifier)}`;
+      const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
 
       // Make the HTTP GET request
       fetch(url)
