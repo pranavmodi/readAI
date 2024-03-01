@@ -8,7 +8,7 @@
       <home-screen v-if="showHomeScreen" @selectBook="openSelectedBook" @fileSelected="uploadBook"/>
       <reading-area v-else 
       :showBookSummary="showBookSummary"
-      :currentBookSummary="currentBookSummary"
+      :bookTitle="bookTitle"
       @closeSummary="showBookSummary = false"/>
     </main>
 

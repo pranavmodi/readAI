@@ -1,7 +1,7 @@
 <template>
   <div class="home-screen flex flex-col items-center justify-center">
     <!-- Directly apply flex properties to the grid -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 my-4" style="width: fit-content; margin: auto;">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 my-4" style="width: fit-content; margin: auto;">
       <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full" @click="selectBook(book)">
         <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-full h-auto rounded-lg shadow-md object-cover" style="height: 400px;"/>
         <h3 class="text-center mt-2">{{ book.name }}</h3>
