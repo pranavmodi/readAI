@@ -49,17 +49,6 @@
 </template>
 
 
-<style>
-.flex-grow {
-  transition: all 0.3s ease;
-}
-
-.limited-width {
-  max-width: 75%; /* Adjust as necessary */
-  transition: all 0.3s ease;
-}
-</style>
-
 
 
 <script>
@@ -88,6 +77,7 @@ export default {
       bookAreaWidth: null,
       currentChapterURI: null,
       bookTitle: null,
+      numberOfChapters: 0,
       currentChapterSummary: null,
       fileUploaded: false,
       epubFile: null, // Store the actual file object here
@@ -112,6 +102,8 @@ export default {
         this.loadBook(reader.result); // reader.result contains the ArrayBuffer
       }, false);
       reader.readAsArrayBuffer(file);
+      this.uploadEpubFile();
+
     } else {
       alert("Please select an EPUB file.");
     }
@@ -497,6 +489,63 @@ export default {
 </script>
 
 <style>
+/* Header and Footer styling */
+header, footer {
+  background-color: #353f4c; /* A deep, professional grey-blue */
+  color: white;
+  padding: 16px 0;
+  transition: background-color 0.3s; /* Smooth transition for hover effect */
+}
+
+header:hover, footer:hover {
+  background-color: #3e4a59; /* Slightly lighter grey-blue on hover */
+}
+
+header h1, footer div {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Main content styling */
+main {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 16px;
+  background-color: #f4f7fa; /* A light, neutral color for the main area */
+}
+
+/* Button styling */
+button {
+  background-color: #4a90e2; /* A muted, professional blue */
+  color: white;
+  font-weight: bold;
+  padding: 10px 20px;
+  margin: 0 12px; /* Increased gap between buttons */
+  border: none;
+  border-radius: 8px; /* Rounded corners for buttons */
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s; /* Smooth transitions for hover effects */
+}
+
+button:hover {
+  background-color: #4285f4; /* A slightly brighter blue on hover */
+  transform: scale(1.05); /* Slightly enlarges the button on hover */
+}
+
+/* Scrollbar styling for main area */
+main::-webkit-scrollbar {
+  width: 8px;
+}
+
+main::-webkit-scrollbar-thumb {
+  background-color: #bdc3c7; /* Scrollbar color */
+  border-radius: 8px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+  background-color: #95a5a6; /* Scrollbar color on hover */
+}
+
 </style>
-
-

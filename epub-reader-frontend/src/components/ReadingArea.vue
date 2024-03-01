@@ -16,9 +16,13 @@
               <label for="chapterSummary">Chapter Summaries</label>
           </div>
 
-          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2>
+          <!-- <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2> -->
           <div class="summary-text" style="max-height: 70vh; overflow: auto;">
-              <div v-html="currentSummary"></div>
+              <!-- Render each chapter summary -->
+              <div v-for="summary in currentSummaries" class="chapter-summary">
+                <h3>{{ summary.title }}</h3>
+                <p>{{ summary.content }}</p>
+              </div>
           </div>
           <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
                 Close
@@ -52,7 +56,7 @@
         selectedSummaryType: "book",
         currentBookSummary: "Default Summary",
         currentChapterSummaries: "Default Chapter Summaries",
-        currentSummary: "",
+        currentSummaries: [],
     };
   },
     methods: {
@@ -60,6 +64,15 @@
             this.$emit("closeSummary");
             this.currentBookSummary = "";
             this.currentChapterSummaries = "";            
+        },
+
+        constructBookSummary() {
+            // Assuming chapterSummaryList is an array of chapter summary objects
+            // No need to concatenate strings, as we will use a Vue template to render them
+            this.currentBookSummaries = this.chapterSummaryList.map(chapter => ({
+            title: chapter.summary.title,
+            content: chapter.summary.summary
+            }));
         },
 
         onShowBookSummaryChanged(newValue) {
@@ -75,16 +88,21 @@
             axios.get(`/book-summary/${encodedBookTitle}`)
                 .then(response => {
                     this.currentBookSummary = response.data.book_summary;
+                    this.currentSummaries = [{ 
+                        title: "Book Summary", 
+                        content: this.currentBookSummary 
+            }];
                 })
                 .catch(error => {
                     console.error("Error fetching book summary:", error);
                     // Handle the error. For example, you might want to show an error message to the user.
                 });
-            this.currentSummary = this.currentBookSummary;
+
+            // set the first element of currentSummaries to currentBookSummary
         },
 
         getChapterSummaries() {
-            this.currentSummary = "";
+            this.currentSummaries = [];
             console.log("Getting chapter summaries");
         },
     },
@@ -166,6 +184,33 @@
 .close-button:focus, .close-button:active {
   outline: none;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.chapter-summary {
+  margin-bottom: 20px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  transition: background-color 0.3s, box-shadow 0.3s; /* Smooth transition for hover effects */
+}
+
+.chapter-summary:hover {
+  background-color: #ffffe0; /* Light yellow background on hover */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slight shadow for a "lifted" effect */
+}
+
+.chapter-summary h3 {
+  font-size: 1.2em;
+  color: #333;
+  transition: color 0.3s; /* Smooth transition for text color */
+}
+
+.chapter-summary h3:hover {
+  color: #007bff; /* Change color on hover */
+}
+
+.chapter-summary p {
+  font-size: 1em;
+  color: #666;
 }
   </style>
   
