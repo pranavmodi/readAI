@@ -5,13 +5,14 @@
     </header>
 
     <main class="flex flex-grow overflow-auto p-4">
-      <home-screen v-if="showHomeScreen" @selectBook="openSelectedBook" @fileSelected="uploadBook"/>
+      <home-screen v-if="showHomeScreen" @selectBook="completeBookSelection" @fileSelected="uploadBook"/>
 
       <reading-area v-else
       :book="book"
       :showBookSummary="showBookSummary"
       :bookTitle="bookTitle"
-      @closeSummary="showBookSummary = false"/>
+      @closeSummary="showBookSummary = false"
+      @handleresize="handleResize"/>
 
     </main>
 
@@ -103,7 +104,6 @@ export default {
       this.fileUploaded = false;
       this.chapterSummaryList = [];
       this.showHomeScreen = false;
-      console.log("File uploaded bool:", this.fileUploaded);
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         this.loadBook(reader.result); // reader.result contains the ArrayBuffer
@@ -116,8 +116,39 @@ export default {
     }
 },
 
+
+    // async completeBookSelection(book) {
+
+    //   await this.openSelectedBook(book);
+    //   console.log("fuck yeah");
+    //   this.showHomeScreen = false;
+    //   // on nexttick handle resize
+    //   this.$nextTick(() => {
+    //     this.handleResize();
+    //   });
+    // },
+
+    async completeBookSelection(book) {
+      await this.openSelectedBook(book);
+
+      this.showHomeScreen = false; // This line triggers DOM changes
+
+      // Ensure handleResize is called in the next tick, after the DOM updates
+      this.$nextTick(() => {
+        try {
+          if (this.rendition) {
+            // this.handleResize(); // Call this only if rendition object is available
+          } else {
+            console.error("Rendition object is not available");
+          }
+        } catch (error) {
+          console.error("Error occurred during handleResize:", error);
+        }
+      });
+    },
+
     async openSelectedBook(book) {
-      this.showHomeScreen = false;
+      
       this.chapterSummaryList = [];
       this.currentBookSummary = "";
 
@@ -129,19 +160,20 @@ export default {
 
         const epubBlob = await response.blob();
         this.epubFile = new File([epubBlob], book.name, { type: 'application/epub+zip' });
-        this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
+        await this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
         // after nexttick do handleresize
+        // this.showHomeScreen = false;
         // this.$nextTick(() => {
         //   this.handleResize();
         // });
       } catch (error) {
         console.error("Error fetching EPUB file:", error);
       }
-      this.getBookSummary()
+      
+      // this.getBookSummary()
     },
 
     uploadBook(e) {
-      console.log("Book to be uploaded");
       const file = e.target.files[0];
       if (file && file.type === "application/epub+zip") {
         this.epubFile = file;
@@ -158,11 +190,10 @@ export default {
     },
 
     gotoHomePage() {
-      console.log("Going to home page");
       this.showHomeScreen = true;
       this.$nextTick(() => {
     // Call handleResize after Vue has updated the DOM
-        this.handleResize();
+        //this.handleResize();
       });
     },
 
@@ -373,8 +404,8 @@ export default {
 
 
     handleResize() {
-      if (!this.rendition) {
-        console.error("Rendition is not initialized.");
+      if (!this.rendition || typeof this.rendition.resize !== 'function') {
+        console.error("Rendition is not initialized or resize method is not available.");
         return;
       }
       // console.alert("handleResize called");
@@ -420,31 +451,67 @@ export default {
       }
     },
 
-    loadBook(arrayBuffer) {
+    // loadBook(arrayBuffer) {
+    //   if (this.rendition) {
+    //     this.rendition.destroy();
+    //   }
+    //   this.book = ePub(arrayBuffer);
+    //   console.log("Book after loading:", this.book);
+    //   this.book.ready.then(() => {
+    //     this.rendition = this.book.renderTo("book-area", {
+    //       width: this.windowSize.width, 
+    //       height: this.windowSize.height
+    //     });
+    //     this.book.loaded.metadata.then(metadata => {
+    //     this.bookTitle = metadata.title; // Store the book title in the component's data
+    //     console.log("Book title:", this.bookTitle);
+    //     })
+    //     this.rendition.themes.fontSize(`${this.fontSize}%`);
+    //     this.rendition.display();
+    //     // resize after nextick
+
+    //     this.handleResize();
+        
+    //   }).catch(error => {
+    //     console.error("Error loading book:", error);
+    //   });
+    // },
+
+  loadBook(arrayBuffer) {
+      return new Promise((resolve, reject) => {
       if (this.rendition) {
         this.rendition.destroy();
       }
       this.book = ePub(arrayBuffer);
-      console.log("Book after loading:", this.book);
+
       this.book.ready.then(() => {
         this.rendition = this.book.renderTo("book-area", {
           width: this.windowSize.width, 
           height: this.windowSize.height
         });
-        this.book.loaded.metadata.then(metadata => {
-        this.bookTitle = metadata.title; // Store the book title in the component's data
-        console.log("Book title:", this.bookTitle);
-        })
-        this.rendition.themes.fontSize(`${this.fontSize}%`);
-        this.rendition.display();
-        // resize after nextick
 
-        this.handleResize();
-        
+        this.book.loaded.metadata.then(metadata => {
+          this.bookTitle = metadata.title; // Store the book title
+          console.log("Book title:", this.bookTitle);
+
+          this.rendition.themes.fontSize(`${this.fontSize}%`);
+          this.rendition.display();
+          // console.log("before handle resize");
+          // this.handleResize();
+          // console.log("after handle resize");
+
+          resolve(); // Resolve the promise when everything is done
+        }).catch(error => {
+          console.error("Error in metadata loading:", error);
+          reject(error); // Reject the promise on error
+        });
+
       }).catch(error => {
         console.error("Error loading book:", error);
+        reject(error); // Reject the promise on error
       });
-    },
+    });
+  },
 
     prevPage() {
       if (this.rendition) {
@@ -483,8 +550,7 @@ export default {
     this.$nextTick(() => {
       window.addEventListener('keydown', (event) => this.handleKeyDown(event));
       window.addEventListener('resize', this.handleResize);
-      // this.handleResize(); // Adjust this to wait for the next DOM update cycle
-
+      this.handleResize(); // Adjust this to wait for the next DOM update cycle
     });    
   },
   beforeUnmount() {

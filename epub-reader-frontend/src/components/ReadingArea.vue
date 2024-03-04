@@ -17,10 +17,25 @@
             </div>
 
             <!-- <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2> -->
-            <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
+            <!-- <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
+                <h3>{{ summary.title }}</h3>
+                <p>{{ summary.content }}</p>
+            </div> -->
+
+            <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
+              <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
+              <div class="book-summary-content">
+                  <p>{{ this.bookSummary }}</p>
+              </div>
+          </div>
+
+        <!-- Chapter Summaries -->
+            <div v-else-if="selectedSummaryType === 'chapter'">
+              <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
                 <h3>{{ summary.title }}</h3>
                 <p>{{ summary.content }}</p>
             </div>
+</div>
             <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
                   Close
             </button>
@@ -48,11 +63,8 @@
 
     data() {
     return {
-        selectedSummaryType: "chapter",
-        bookSummary: [{ 
-                        title: "Book Summary", 
-                        content: ""
-                      }],
+        selectedSummaryType: "book",
+        bookSummary: null,
         chapterSummaries: [{ 
                                     title: "Chapter 1 Summary", 
                                     content: "Chapter 1 summary"
@@ -65,14 +77,13 @@
                                     title: "Chapter 3 Summary", 
                                     content: "Chapter 3 summary"
                           }],
-        currentSummaries: this.bookSummary,
+        currentSummaries: null,
     };
   },
     methods: {
         closeSummary() {
-          console.log("Closing summary in reading area");
-          console.log("this.book", this.book);
-            this.$emit("closeSummary");         
+            this.$emit("closeSummary"); 
+            this.$emit("handleresize");        
         },
 
         onShowBookSummaryChanged(newValue) {
@@ -87,11 +98,13 @@
 
             axios.get(`/book-summary/${encodedBookTitle}`)
                 .then(response => {
-                    this.currentBookSummary = response.data.book_summary;
-                    this.currentSummaries = [{ 
-                        title: "Book Summary", 
-                        content: this.currentBookSummary 
-            }];
+                    // this.bookSummary = response.data.book_summary;
+                    // console.log("the summary from response is", response.data.book_summary)
+                    this.bookSummary = response.data.book_summary;
+            //         this.currentSummaries = [{ 
+            //             title: "Book fucking Summary", 
+            //             content: response.data.book_summary
+            // }];
                 })
                 .catch(error => {
                     console.error("Error fetching book summary:", error);
@@ -159,12 +172,14 @@
 
 
   mounted() {
-    console.log("Reading area mounted");
+    
     // call following functions after nexttick
-    this.$nextTick(() => {
-      this.getBookSummary();
-      this.getChapterSummaries();
-    });
+    console.log("Reading area mounted", this.bookTitle);
+    this.getBookSummary();
+    this.getChapterSummaries();
+    // this.$nextTick(() => {
+
+    // });
   }
 
 
@@ -212,6 +227,8 @@
     background-color: #ffffff; /* Ensures the background is white */
     border-radius: 15px; /* Rounded corners for the overlay */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow for the overlay */
+    max-height: 80vh; /* 80% of the viewport height */
+    overflow-y: auto; /* enables vertical scrolling */
   }
   
 
@@ -263,6 +280,26 @@
 .chapter-summary p {
   font-size: 1em;
   color: #666;
+}
+
+.book-summary-container {
+    background-color: #f8f8f8; /* Light background for the container */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    margin-top: 20px;
+}
+
+.book-summary-title {
+    color: #333; /* Dark color for the title */
+    font-size: 24px; /* Larger font size for the title */
+    margin-bottom: 15px; /* Space between title and content */
+}
+
+.book-summary-content {
+    font-size: 16px; /* Comfortable reading font size */
+    line-height: 1.6; /* Line height for better readability */
+    color: #555; /* Slightly lighter color for the content */
 }
   </style>
   
