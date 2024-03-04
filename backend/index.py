@@ -101,9 +101,7 @@ def book_summary(book_title):
 @app.route('/chapter-summary/<path:chapter_id>', methods=['GET'])
 def get_summary(chapter_id):
     # Query the database for the summary
-    logging.info("Inside get_summary, the requested chapter_id is %s", chapter_id)
     summary_document = lookup_summary(chapter_id)
-    logging.info("summary_document is %s", summary_document)
 
     if summary_document:
         # Return the summary if found

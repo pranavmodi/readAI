@@ -32,6 +32,7 @@ def connect_to_mongodb():
 def lookup_summary(chapter_id):
     # Query the database for the summary
     collection = connect_to_mongodb()
+    logging.info("Inside lookup_summary, the requested chapter_id is %s", chapter_id)
     summary_document = collection.find_one({"chapter_identifier": chapter_id})
 
     if summary_document:
@@ -114,8 +115,6 @@ def process_epub(file_path, collection, rewrite=False):
             'book_summary': consolidated_summary
         }
         collection.insert_one(document)
-
-
 
 
 # Function to create indexes in MongoDB

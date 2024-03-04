@@ -244,72 +244,72 @@ export default {
     //   this.getCurrentChapterURI()
     // },
 
-    async getBookSummary() {
-      // This function populates the chapterSummaryList array with the chapter summaries
-      // Get the list of chapters
-      if (!this.book) {
-        console.error("Book not loaded");
-        return;
-      }
-      if (this.fileUploaded == false) {
-        // The following line triggers the book_main using upload epub API call
-        this.uploadEpubFile();
-      }
-      let chapters = await this.book.spine.spineItems;
+    // async getBookSummary() {
+    //   // This function populates the chapterSummaryList array with the chapter summaries
+    //   // Get the list of chapters
+    //   if (!this.book) {
+    //     console.error("Book not loaded");
+    //     return;
+    //   }
+    //   if (this.fileUploaded == false) {
+    //     // The following line triggers the book_main using upload epub API call
+    //     this.uploadEpubFile();
+    //   }
+    //   let chapters = await this.book.spine.spineItems;
       
-      for (let chapter of chapters) {
-        await this.fetchChapterSummary(chapter.href);
-      }
-      this.constructBookSummary();
+    //   for (let chapter of chapters) {
+    //     await this.fetchChapterSummary(chapter.href);
+    //   }
+    //   this.constructBookSummary();
 
-    },
+    // },
 
 
-    fetchChapterSummary(chapterHref) {
-        return new Promise((resolve, reject) => {
-          // create endpoint combining book title and chapter href
-          const chapterIdentifier = this.generateChapterIdentifier(chapterHref);
-          const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
-          let attempts = 0;
+    // fetchChapterSummary(chapterHref) {
+    //     return new Promise((resolve, reject) => {
+    //       // create endpoint combining book title and chapter href
+    //       const chapterIdentifier = this.generateChapterIdentifier(chapterHref);
+    //       const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
+    //       let attempts = 0;
 
-          const pollForSummary = () => {
-            fetch(url)
-              .then(response => {
-                if (!response.ok) {
-                  throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-              })
-              .then(data => {
-                if (data.status === "success") {
-                  // push the summary as a map with keys as chapter title and summary
-                  this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
-                  //this.chapterSummaryList.push(data.chapter_summary);
-                  resolve();
-                } else if (data.status === "pending") {
-                  attempts++;
-                  if (attempts < 5) { // Retry up to 5 times
-                    setTimeout(pollForSummary, 5000); // Poll every 5 seconds
-                  } else {
-                    console.log(`Maximum retries reached for ${chapterHref}`);
-                    reject(new Error(`Maximum retries reached for ${chapterHref}`));
-                  }
-                } else {
+    //       const pollForSummary = () => {
+    //         fetch(url)
+    //           .then(response => {
+    //             if (!response.ok) {
+    //               throw new Error(`HTTP error! Status: ${response.status}`);
+    //             }
+    //             return response.json();
+    //           })
+    //           .then(data => {
+    //             if (data.status === "success") {
+    //               // push the summary as a map with keys as chapter title and summary
+    //               this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
+    //               //this.chapterSummaryList.push(data.chapter_summary);
+    //               resolve();
+    //             } else if (data.status === "pending") {
+    //               attempts++;
+    //               if (attempts < 5) { // Retry up to 5 times
+    //                 setTimeout(pollForSummary, 5000); // Poll every 5 seconds
+    //               } else {
+    //                 console.log(`Maximum retries reached for ${chapterHref}`);
+    //                 reject(new Error(`Maximum retries reached for ${chapterHref}`));
+    //               }
+    //             } else {
                   
-                  console.error(`Error fetching summary for ${chapterHref}:`, data.message);
-                  resolve();
-                }
-              })
-              .catch(error => {
-                console.log('some error here')
-                console.error(`Error in fetching chapter summary for ${chapterHref}:`, error.message);
-                resolve();
-              });
-          };
+    //               console.error(`Error fetching summary for ${chapterHref}:`, data.message);
+    //               resolve();
+    //             }
+    //           })
+    //           .catch(error => {
+    //             console.log('some error here')
+    //             console.error(`Error in fetching chapter summary for ${chapterHref}:`, error.message);
+    //             resolve();
+    //           });
+    //       };
 
-          pollForSummary();
-        });
-      },
+    //       pollForSummary();
+    //     });
+    //   },
 
     generateChapterIdentifier(chapterName) {
       // Assuming bookTitle is set when the book is loaded

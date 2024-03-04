@@ -16,12 +16,6 @@
                 <label for="chapterSummary">Chapter Summaries</label>
             </div>
 
-            <!-- <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2> -->
-            <!-- <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
-                <h3>{{ summary.title }}</h3>
-                <p>{{ summary.content }}</p>
-            </div> -->
-
             <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
               <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
               <div class="book-summary-content">
@@ -31,11 +25,11 @@
 
         <!-- Chapter Summaries -->
             <div v-else-if="selectedSummaryType === 'chapter'">
-              <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
+              <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
                 <h3>{{ summary.title }}</h3>
                 <p>{{ summary.content }}</p>
             </div>
-</div>
+            </div>
             <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
                   Close
             </button>
@@ -65,19 +59,19 @@
     return {
         selectedSummaryType: "book",
         bookSummary: null,
-        chapterSummaries: [{ 
-                                    title: "Chapter 1 Summary", 
-                                    content: "Chapter 1 summary"
-                          }, 
-                          { 
-                                    title: "Chapter 2 Summary", 
-                                    content: "Chapter 2 summary"
-                          }, 
-                          { 
-                                    title: "Chapter 3 Summary", 
-                                    content: "Chapter 3 summary"
-                          }],
-        currentSummaries: null,
+        // chapterSummaries: [{ 
+        //                             title: "Chapter 1 Summary", 
+        //                             content: "Chapter 1 summary"
+        //                   }, 
+        //                   { 
+        //                             title: "Chapter 2 Summary", 
+        //                             content: "Chapter 2 summary"
+        //                   }, 
+        //                   { 
+        //                             title: "Chapter 3 Summary", 
+        //                             content: "Chapter 3 summary"
+        //                   }],
+        chapterSummaries: null,
     };
   },
     methods: {
@@ -114,25 +108,39 @@
             // set the first element of currentSummaries to currentBookSummary
         },
 
+        generateChapterIdentifier(chapterName) {
+          // Assuming bookTitle is set when the book is loaded
+          // check if chapter name is passed
+          if (!chapterName) {
+            return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
+          }
+          else {
+            return `${this.bookTitle}_Chapter_${chapterName}`;
+          }
+        },
+
         getChapterSummaries() {
         if (!this.book) {
             console.error("Book not loaded");
             return;
         }
-        if (this.fileUploaded === false) {
-            this.uploadEpubFile();
-        }
-
+        // if (this.fileUploaded === false) {
+        //   console.log('file not uploaded at all')
+        //     this.uploadEpubFile();
+        // }
         let chapters = this.book.spine.spineItems;
         let summaryPromises = chapters.map(chapter => {
-            return axios.get(`/chapter-summary/${encodeURIComponent(chapter.href)}`)
+            let chapterId = this.generateChapterIdentifier(chapter.href);
+            
+            return axios.get(`/chapter-summary/${encodeURIComponent(chapterId)}`)
                 .then(response => {
                     if (response.data.status === 'success') {
                         return {
-                            title: "Chapter Summary for " + chapter.href,
-                            content: response.data.chapter_summary
+                            title: chapter.href,
+                            content: response.data.chapter_summary.summary
                         };
                     } else {
+                        console.log('response error response.data.status', response.data.status)
                         return {
                             title: "Chapter Summary for " + chapter.href,
                             content: "Summary is pending for this chapter."
@@ -149,7 +157,7 @@
         });
 
         Promise.all(summaryPromises).then(summaries => {
-            this.currentSummaries = summaries;
+            this.chapterSummaries = summaries;
         });
     },
   
@@ -230,56 +238,44 @@
     max-height: 80vh; /* 80% of the viewport height */
     overflow-y: auto; /* enables vertical scrolling */
   }
-  
 
-  .close-button {
-  background-color: #3ea5e5; /* Blue color similar to the upload button */
-  color: white;
-  cursor: pointer;
-  padding: 10px 20px;
-  font-weight: bold;
-  border-radius: 20px; /* Rounded corners */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover and click */
-  border: none; /* No border */
-  text-align: center;
-}
-
-.close-button:hover {
-  background-color: #a2c530; /* Darker shade for hover, similar to the upload button */
-  transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
-.close-button:active {
-  background-color: #87b4d6; /* Different shade for active state */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); /* Slightly deeper shadow for clicked state */
-}
 
 .chapter-summary {
-  margin-bottom: 20px;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  transition: background-color 0.3s, box-shadow 0.3s; /* Smooth transition for hover effects */
+    background-color: #f8f8f8; /* Light background for each summary */
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Softer shadow for depth */
+    margin-bottom: 10px; /* Space between each summary */
+    transition: box-shadow 0.3s ease, transform 0.3s ease; /* Smooth transition for hover effects */
 }
 
 .chapter-summary:hover {
-  background-color: #ffffe0; /* Light yellow background on hover */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slight shadow for a "lifted" effect */
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15); /* Larger shadow on hover for a "lifted" effect */
+    transform: translateY(-3px); /* Slightly raise the summary */
 }
 
 .chapter-summary h3 {
-  font-size: 1.2em;
-  color: #333;
-  transition: color 0.3s; /* Smooth transition for text color */
-}
-
-.chapter-summary h3:hover {
-  color: #007bff; /* Change color on hover */
+    color: #333; /* Dark color for the title */
+    font-size: 20px; /* Slightly smaller font size than the book summary title */
+    margin-bottom: 10px; /* Space between title and content */
 }
 
 .chapter-summary p {
-  font-size: 1em;
-  color: #666;
+    font-size: 16px; /* Comfortable reading font size */
+    line-height: 1.6; /* Line height for better readability */
+    color: #555; /* Slightly lighter color for the content */
+}
+
+.close-button {
+    background-color: #007bff; /* Blue background for the button */
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 20px; /* Space above the button */
+}
+
+.close-button:hover {
+    background-color: #0056b3; /* Darker blue on hover for visual feedback */
 }
 
 .book-summary-container {
@@ -288,6 +284,13 @@
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
     margin-top: 20px;
+    transition: box-shadow 0.3s ease, transform 0.3s ease; /* Smooth transition for hover effects */
+
+}
+
+.book-summary-container:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Larger shadow on hover for a "lifted" effect */
+    transform: translateY(-5px); /* Slightly raise the container */
 }
 
 .book-summary-title {
