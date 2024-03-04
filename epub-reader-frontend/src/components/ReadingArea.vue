@@ -1,42 +1,37 @@
 <template>
-<div class="reading-area flex flex-col items-center justify-center">
-    <!-- if showsummary is not true show book-area -->
-    <div id="book-area" class="bg-white shadow-md rounded p-4">
-    </div>
+  <div class="reading-area flex flex-col items-center justify-center">
+      <!-- if showsummary is not true show book-area -->
+      <div id="book-area" class="bg-white shadow-md rounded p-4">
+      </div>
 
-    <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
-        <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
-          
-          <!-- Styled Toggle Switch -->
-          <div class="toggle-switch mb-4">
-              <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
-              <label for="bookSummary">Book Summary</label>
-              
-              <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
-              <label for="chapterSummary">Chapter Summaries</label>
-          </div>
+      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
+          <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
+            
+            <!-- Styled Toggle Switch -->
+            <div class="toggle-switch mb-4">
+                <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
+                <label for="bookSummary">Book Summary</label>
+                
+                <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
+                <label for="chapterSummary">Chapter Summaries</label>
+            </div>
 
-          <!-- <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2> -->
-          <div class="summary-text" style="max-height: 70vh; overflow: auto;">
-              <!-- Render each chapter summary -->
-              <div v-for="summary in currentSummaries" class="chapter-summary">
+            <!-- <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Summary</h2> -->
+            <div v-for="summary in currentSummaries" :key="summary.title" class="chapter-summary">
                 <h3>{{ summary.title }}</h3>
                 <p>{{ summary.content }}</p>
-              </div>
+            </div>
+            <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+                  Close
+            </button>
           </div>
-          <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-                Close
-          </button>
+      </div>
 
-        </div>
-    </div>
-
-    <!-- Other buttons and functionality specific to reading a book -->
-    <div class="button-group space-x-2">
-        <!-- Buttons for navigation, font size adjustment, etc. -->
-    </div>
-</div>
-
+      <!-- Other buttons and functionality specific to reading a book -->
+      <div class="button-group space-x-2">
+          <!-- Buttons for navigation, font size adjustment, etc. -->
+      </div>
+  </div>
 </template>
   
   <script>
@@ -46,43 +41,48 @@
 
   export default {
     props: {
-        selectedBook: Object,
+        book: Object,
         showBookSummary: Boolean,
-        bookTitle: String,
-        currentChapterURI: String
+        bookTitle: String
     },
+
     data() {
     return {
-        selectedSummaryType: "book",
-        currentBookSummary: "Default Summary",
-        currentChapterSummaries: "Default Chapter Summaries",
-        currentSummaries: [],
+        selectedSummaryType: "chapter",
+        bookSummary: [{ 
+                        title: "Book Summary", 
+                        content: ""
+                      }],
+        chapterSummaries: [{ 
+                                    title: "Chapter 1 Summary", 
+                                    content: "Chapter 1 summary"
+                          }, 
+                          { 
+                                    title: "Chapter 2 Summary", 
+                                    content: "Chapter 2 summary"
+                          }, 
+                          { 
+                                    title: "Chapter 3 Summary", 
+                                    content: "Chapter 3 summary"
+                          }],
+        currentSummaries: this.bookSummary,
     };
   },
     methods: {
         closeSummary() {
-            this.$emit("closeSummary");
-            this.currentBookSummary = "";
-            this.currentChapterSummaries = "";            
-        },
-
-        constructBookSummary() {
-            // Assuming chapterSummaryList is an array of chapter summary objects
-            // No need to concatenate strings, as we will use a Vue template to render them
-            this.currentBookSummaries = this.chapterSummaryList.map(chapter => ({
-            title: chapter.summary.title,
-            content: chapter.summary.summary
-            }));
+          console.log("Closing summary in reading area");
+          console.log("this.book", this.book);
+            this.$emit("closeSummary");         
         },
 
         onShowBookSummaryChanged(newValue) {
             if (newValue) {
-                console.log("showsummary turned true");
+                console.log("showsummary turned true, ", this.bookTitle);
             }
         },
         
         getBookSummary() {
-            console.log("Getting book summary");
+            console.log("Getting fucking book summary", this.bookTitle);
             const encodedBookTitle = encodeURIComponent(this.bookTitle);
 
             axios.get(`/book-summary/${encodedBookTitle}`)
@@ -102,25 +102,75 @@
         },
 
         getChapterSummaries() {
-            this.currentSummaries = [];
-            console.log("Getting chapter summaries");
-        },
-    },
-    watch: {
-            showBookSummary(newValue) {
-            this.onShowBookSummaryChanged(newValue);
+        if (!this.book) {
+            console.error("Book not loaded");
+            return;
+        }
+        if (this.fileUploaded === false) {
+            this.uploadEpubFile();
+        }
 
+        let chapters = this.book.spine.spineItems;
+        let summaryPromises = chapters.map(chapter => {
+            return axios.get(`/chapter-summary/${encodeURIComponent(chapter.href)}`)
+                .then(response => {
+                    if (response.data.status === 'success') {
+                        return {
+                            title: "Chapter Summary for " + chapter.href,
+                            content: response.data.chapter_summary
+                        };
+                    } else {
+                        return {
+                            title: "Chapter Summary for " + chapter.href,
+                            content: "Summary is pending for this chapter."
+                        };
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching summary for chapter:", chapter.href, error);
+                    return {
+                        title: "Chapter Summary for " + chapter.href,
+                        content: "An error occurred while fetching the chapter summary."
+                    };
+                });
+        });
+
+        Promise.all(summaryPromises).then(summaries => {
+            this.currentSummaries = summaries;
+        });
+    },
+  
+  },
+    watch: {
+        showBookSummary: function (newValue) {
+            // console.log("Show book summary changed to:", newValue);
+            this.onShowBookSummaryChanged(newValue);
         },
-            selectedSummaryType(newValue) {
-            console.log("Selected summary type changed to:", newValue);
+        selectedSummaryType: function (newValue) {
+            console.log("Selected summary type changed for book:", this.bookTitle);
             if (newValue === "book") {
-                this.getBookSummary();
+                console.log("Setting current summaries to book summary");
+                this.currentSummaries = this.bookSummary;
             } else {
-                this.getChapterSummaries();
+                this.currentSummaries = this.chapterSummaries;
             }
         }
     },
+
+
+  mounted() {
+    console.log("Reading area mounted");
+    // call following functions after nexttick
+    this.$nextTick(() => {
+      this.getBookSummary();
+      this.getChapterSummaries();
+    });
+  }
+
+
   };
+
+
   </script>
   
   <style>
@@ -166,24 +216,26 @@
   
 
   .close-button {
-  background-color: #3ea5e5; /* A shade of blue for the button */
+  background-color: #3ea5e5; /* Blue color similar to the upload button */
   color: white;
-  border: none;
-  border-radius: 20px;
+  cursor: pointer;
   padding: 10px 20px;
   font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.3s, transform 0.3s;
+  border-radius: 20px; /* Rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
+  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover and click */
+  border: none; /* No border */
+  text-align: center;
 }
 
 .close-button:hover {
-  background-color: #a2c530; /* Darker shade on hover */
-  transform: scale(1.05);
+  background-color: #a2c530; /* Darker shade for hover, similar to the upload button */
+  transform: scale(1.05); /* Slightly enlarge on hover */
 }
 
-.close-button:focus, .close-button:active {
-  outline: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+.close-button:active {
+  background-color: #87b4d6; /* Different shade for active state */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); /* Slightly deeper shadow for clicked state */
 }
 
 .chapter-summary {

@@ -6,10 +6,13 @@
 
     <main class="flex flex-grow overflow-auto p-4">
       <home-screen v-if="showHomeScreen" @selectBook="openSelectedBook" @fileSelected="uploadBook"/>
-      <reading-area v-else 
+
+      <reading-area v-else
+      :book="book"
       :showBookSummary="showBookSummary"
       :bookTitle="bookTitle"
       @closeSummary="showBookSummary = false"/>
+
     </main>
 
     <footer class="flex justify-center bg-purple-800 p-4">
@@ -18,7 +21,11 @@
         <!-- Buttons for Home Screen -->
         <!-- Upload EPUB File Button -->
         <!-- <input type="file" id="file-input" hidden @change="handleFileChange" accept=".epub"/> -->
-        <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
+        
+        <input type="file" id="file-upload" @change="onFileChange" hidden>
+        <label for="file-upload" class="upload-button">Upload File</label>
+
+        <!-- <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded"> -->
         <!-- <button @click="uploadEpubFile" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
         
           Upload EPUB File
@@ -27,17 +34,17 @@
       <div v-else>
         <!-- Buttons for Reading Area -->
         <!-- Increase / Decrease Font Size Buttons -->
-        <button @click="increaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="increaseFontSize" class="button-style font-size-increase">
           A+
         </button>
-        <button @click="decreaseFontSize" class="bg-purple-500 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="decreaseFontSize" class="button-style font-size-decrease">
           A-
         </button>
         <!-- Book Summary Button -->
-        <button @click="openSummary" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="openSummary" class="button-style book-summary-button">
           Book Summary
         </button>
-        <button @click="gotoHomePage" class="bg-amber-500 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded">
+        <button @click="gotoHomePage" class="button-style home-button">
           Home
         </button>
       </div>
@@ -167,7 +174,6 @@ export default {
 
     openSummary() {
       this.showBookSummary = true;
-      // this.getBookSummary();
     },
 
     getCurrentChapterURI() {
@@ -517,21 +523,31 @@ main {
 }
 
 /* Button styling */
-button {
-  background-color: #4a90e2; /* A muted, professional blue */
+.button-style {
+  background-color: #3ea5e5; /* Blue color similar to the upload button */
   color: white;
-  font-weight: bold;
-  padding: 10px 20px;
-  margin: 0 12px; /* Increased gap between buttons */
-  border: none;
-  border-radius: 8px; /* Rounded corners for buttons */
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transitions for hover effects */
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 20px; /* Rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
+  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover and click */
+  border: none; /* No border */
+  text-align: center;
 }
 
-button:hover {
-  background-color: #4285f4; /* A slightly brighter blue on hover */
-  transform: scale(1.05); /* Slightly enlarges the button on hover */
+.button-style:hover {
+  background-color: #a2c530; /* Darker shade for hover */
+  transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+.button-style:active {
+  background-color: #87b4d6; /* Different shade for active state */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); /* Slightly deeper shadow for clicked state */
+}
+
+.font-size-increase, .font-size-decrease, .book-summary-button, .home-button {
+  /* Optionally, you can add specific styles for each button type here */
 }
 
 /* Scrollbar styling for main area */
@@ -546,6 +562,29 @@ main::-webkit-scrollbar-thumb {
 
 main::-webkit-scrollbar-thumb:hover {
   background-color: #95a5a6; /* Scrollbar color on hover */
+}
+
+.upload-button {
+  background-color: #3ea5e5; /* Blue color similar to the close button */
+  color: white;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 20px; /* Rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
+  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover and click */
+  display: inline-block; /* Correctly display inline with padding and border-radius */
+  text-align: center;
+}
+
+.upload-button:hover {
+  background-color: #a2c530; /* Darker shade for hover, similar to the close button */
+  transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+.upload-button:active {
+  background-color: #87b4d6; /* Different shade for active state */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); /* Slightly deeper shadow for clicked state */
 }
 
 </style>
