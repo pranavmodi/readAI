@@ -7,13 +7,21 @@
       <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
           <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
             
-            <!-- Styled Toggle Switch -->
-            <div class="toggle-switch mb-4">
-                <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
-                <label for="bookSummary">Book Summary</label>
-                
-                <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
-                <label for="chapterSummary">Chapter Summaries</label>
+            <!-- Close button and Toggle Switch in the same row -->
+            <div class="flex items-center mb-4">
+                <!-- Close button with left arrow -->
+                <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+                    &#8592; <!-- This is a left arrow symbol -->
+                </button>
+
+                <!-- Styled Toggle Switch -->
+                <div class="toggle-switch">
+                    <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
+                    <label for="bookSummary">Book Summary</label>
+                    
+                    <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
+                    <label for="chapterSummary">Chapter Summaries</label>
+                </div>
             </div>
 
             <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
@@ -21,18 +29,15 @@
               <div class="book-summary-content">
                   <p>{{ this.bookSummary }}</p>
               </div>
-          </div>
+            </div>
 
-        <!-- Chapter Summaries -->
+            <!-- Chapter Summaries -->
             <div v-else-if="selectedSummaryType === 'chapter'">
               <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
                 <h3>{{ summary.title }}</h3>
                 <p>{{ summary.content }}</p>
+              </div>
             </div>
-            </div>
-            <button @click="closeSummary" class="close-button text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-                  Close
-            </button>
           </div>
       </div>
 
@@ -42,6 +47,7 @@
       </div>
   </div>
 </template>
+
   
   <script>
 
@@ -87,7 +93,6 @@
         },
         
         getBookSummary() {
-            console.log("Getting fucking book summary", this.bookTitle);
             const encodedBookTitle = encodeURIComponent(this.bookTitle);
 
             axios.get(`/book-summary/${encodedBookTitle}`)
@@ -95,10 +100,6 @@
                     // this.bookSummary = response.data.book_summary;
                     // console.log("the summary from response is", response.data.book_summary)
                     this.bookSummary = response.data.book_summary;
-            //         this.currentSummaries = [{ 
-            //             title: "Book fucking Summary", 
-            //             content: response.data.book_summary
-            // }];
                 })
                 .catch(error => {
                     console.error("Error fetching book summary:", error);
@@ -185,18 +186,29 @@
     console.log("Reading area mounted", this.bookTitle);
     this.getBookSummary();
     this.getChapterSummaries();
-    // this.$nextTick(() => {
-
-    // });
   }
-
-
   };
 
 
   </script>
   
   <style>
+.close-btn {
+    background-color: #007bff; /* Blue background for the button */
+    color: white; /* White text color */
+    border: none;
+    cursor: pointer;
+    font-size: 16px; /* Comfortable font size */
+    border-radius: 4px; /* Rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+    transition: background-color 0.3s, box-shadow 0.3s; /* Smooth transition */
+}
+
+.close-btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Larger shadow on hover */
+}
+
   .toggle-switch {
     display: flex;
     align-items: center;

@@ -4,8 +4,9 @@ from ebooklib import epub
 from pymongo import MongoClient
 import pymongo
 import logging
+import json
 from pymongo.errors import ConnectionFailure
-from readai import summarize_book_chapter, summarize_book
+from readai import summarize_book_chapter, summarize_summaries
 
 
 logger = logging.getLogger(__name__)
@@ -45,8 +46,9 @@ def lookup_summary(chapter_id):
 def lookup_book_summary(book_title):
     # Query the database for the summary
     collection = connect_to_mongodb()
+    print('Inside lookup_book_summary, the requested book_title is', book_title)
     summary_document = collection.find_one({"book": book_title, "is_book_summary": True})
-
+    print('summary_document is', summary_document)
     if summary_document:
         # Return the summary if found
         return summary_document['book_summary']
@@ -107,13 +109,13 @@ def process_epub(file_path, collection, rewrite=False):
         logging.info("Book summary already exists, skipping processing for book: %s", existing_book_summary)
         return
     else:
-        # join together all chapter summaries which have is_main_content as True
-        consolidated_summary = summarize_book(" ".join(cs['summary'] for cs in chapter_summaries if cs['is_main_content']))
+        consolidated_summary = summarize_summaries(" ".join(cs["chapter_summary"]['summary'] for cs in chapter_summaries if cs["chapter_summary"]['is_main_content']))
         document = {
             'book': book_title,
             'is_book_summary': True,  # Flag to indicate that this is a book summary
             'book_summary': consolidated_summary
         }
+        print(document)
         collection.insert_one(document)
 
 

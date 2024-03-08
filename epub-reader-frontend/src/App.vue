@@ -19,22 +19,12 @@
     <footer class="flex justify-center bg-purple-800 p-4">
       <!-- Conditional Footer content -->
       <div v-if="showHomeScreen">
-        <!-- Buttons for Home Screen -->
-        <!-- Upload EPUB File Button -->
-        <!-- <input type="file" id="file-input" hidden @change="handleFileChange" accept=".epub"/> -->
-        
-        <input type="file" id="file-upload" @change="onFileChange" hidden>
-        <label for="file-upload" class="upload-button">Upload File</label>
 
-        <!-- <input type="file" @change="onFileChange" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded"> -->
-        <!-- <button @click="uploadEpubFile" class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded">
-        
-          Upload EPUB File
-        </button> -->
+        <input type="file" id="file-upload" @change="onFileChange" hidden>
+        <label for="file-upload" class="upload-button">Upload Book</label>
+
       </div>
       <div v-else>
-        <!-- Buttons for Reading Area -->
-        <!-- Increase / Decrease Font Size Buttons -->
         <button @click="increaseFontSize" class="button-style font-size-increase">
           A+
         </button>
@@ -50,14 +40,8 @@
         </button>
       </div>
     </footer>
-
-    <!-- Home Button (Top Left of the Screen) -->
-
   </div>
 </template>
-
-
-
 
 <script>
 import ePub from 'epubjs';
@@ -106,8 +90,9 @@ export default {
       this.showHomeScreen = false;
       const reader = new FileReader();
       reader.addEventListener("load", () => {
-        this.loadBook(reader.result); // reader.result contains the ArrayBuffer
+         this.loadBook(reader.result); // reader.result contains the ArrayBuffer
       }, false);
+      console.log("this.book value is", this.book);
       reader.readAsArrayBuffer(file);
       this.uploadEpubFile();
 
@@ -145,6 +130,8 @@ export default {
           console.error("Error occurred during handleResize:", error);
         }
       });
+      console.log("going to upload the book for processing");
+      this.uploadEpubFile();
     },
 
     async openSelectedBook(book) {
@@ -174,6 +161,7 @@ export default {
     },
 
     uploadBook(e) {
+      console.log("fucking uploading book now")
       const file = e.target.files[0];
       if (file && file.type === "application/epub+zip") {
         this.epubFile = file;
@@ -353,15 +341,15 @@ export default {
         });
     },
 
-    showAIExplanation() {
-      // Logic to show AI explanation
-      console.log('AI Explanation button clicked');
-    },
+    // showAIExplanation() {
+    //   // Logic to show AI explanation
+    //   console.log('AI Explanation button clicked');
+    // },
 
-    toggleSidePanel() {
-      this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
-      //this.resizeBookForSidePanel(); // Resize accordingly
-    },
+    // toggleSidePanel() {
+    //   this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
+    //   //this.resizeBookForSidePanel(); // Resize accordingly
+    // },
 
 
     resizeBookForSidePanel() {
@@ -390,8 +378,7 @@ export default {
         }
         return response.json();
       })
-      .then(data => {
-        console.log('File upload Success:', data);
+      .then(() => {
         this.fileUploaded = true;
       })
       .catch((error) => {
@@ -451,38 +438,14 @@ export default {
       }
     },
 
-    // loadBook(arrayBuffer) {
-    //   if (this.rendition) {
-    //     this.rendition.destroy();
-    //   }
-    //   this.book = ePub(arrayBuffer);
-    //   console.log("Book after loading:", this.book);
-    //   this.book.ready.then(() => {
-    //     this.rendition = this.book.renderTo("book-area", {
-    //       width: this.windowSize.width, 
-    //       height: this.windowSize.height
-    //     });
-    //     this.book.loaded.metadata.then(metadata => {
-    //     this.bookTitle = metadata.title; // Store the book title in the component's data
-    //     console.log("Book title:", this.bookTitle);
-    //     })
-    //     this.rendition.themes.fontSize(`${this.fontSize}%`);
-    //     this.rendition.display();
-    //     // resize after nextick
 
-    //     this.handleResize();
-        
-    //   }).catch(error => {
-    //     console.error("Error loading book:", error);
-    //   });
-    // },
-
-  loadBook(arrayBuffer) {
+  async loadBook(arrayBuffer) {
       return new Promise((resolve, reject) => {
       if (this.rendition) {
         this.rendition.destroy();
       }
       this.book = ePub(arrayBuffer);
+      console.log("in fucking here, this.book value is ", this.book);
 
       this.book.ready.then(() => {
         this.rendition = this.book.renderTo("book-area", {
@@ -525,6 +488,7 @@ export default {
       if (this.rendition) {
         this.rendition.next();
         this.getCurrentChapterURI()
+        this.handleResize();
       } else {
         console.error("Rendition is not initialized.");
       }

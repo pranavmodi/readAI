@@ -26,54 +26,42 @@ def num_tokens_from_string(string: str, encoding_name: str) -> int:
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
-def split_into_chunks(chapter_text, max_token_length=3000):
+def split_into_chunks(chapter_text, max_token_length=3000, overlap_length=500):
     """
     Splits a text into chunks, each having a maximum of max_token_length tokens.
+    Each chunk starts and ends at the end of a sentence and there is overlap between chunks.
     This uses a rough approximation of 4 characters per token.
     """
     avg_chars_per_token = 4
     max_chunk_length = max_token_length * avg_chars_per_token
+    overlap_chars = overlap_length * avg_chars_per_token
     chunks = []
 
-    # Use the correct variable name 'chapter_text'
     while chapter_text:
-        # Take the next chunk of text up to the max_chunk_length
-        chunk = chapter_text[:max_chunk_length]
+        if len(chapter_text) <= max_chunk_length:
+            chunks.append(chapter_text)
+            break
+
+        # Find the end of a sentence near max_chunk_length
+        end = chapter_text.rfind('.', 0, max_chunk_length) + 1
+
+        # If a sentence end wasn't found, take the whole chunk
+        if end == 0:
+            end = max_chunk_length
+
+        chunk = chapter_text[:end]
         chunks.append(chunk)
-        # Remove the processed chunk from the text
-        chapter_text = chapter_text[max_chunk_length:]
+
+        # Find the start of the next sentence for the next chunk
+        next_sentence_start = chapter_text.find('. ', end - 1) + 2
+        if next_sentence_start < 2:
+            next_sentence_start = end
+
+        # Start next chunk with some overlap, but from the start of a sentence
+        overlap_start = max(end, next_sentence_start - overlap_chars)
+        chapter_text = chapter_text[overlap_start:]
 
     return chunks
-
-
-
-# def split_into_chunks(text, max_token_length=4000, encoding='gpt-3.5-turbo'):
-#     """
-#     Splits a text into chunks, each having a maximum of max_token_length tokens.
-#     """
-#     # encoding = tiktoken.get_encoding(encoding)
-#     tokens = encoding.encode(text)
-#     chunks = []
-
-#     current_chunk = []
-#     current_length = 0
-
-#     for token in tokens:
-#         if current_length + len(token) > max_token_length:
-#             # Join the tokens in the current chunk and add it to the chunks list
-#             chunks.append(encoding.decode(current_chunk))
-#             current_chunk = [token]
-#             current_length = len(token)
-#         else:
-#             current_chunk.append(token)
-#             current_length += len(token)
-
-#     # Add the last chunk if it's not empty
-#     if current_chunk:
-#         chunks.append(encoding.decode(current_chunk))
-
-#     return chunks
-
 
 
 def summarize_chunk(chunk, client):
@@ -154,19 +142,25 @@ def summarize_book_chapter(chapter_text):
     return consolidated_summary
 
 
-def summarize_book(chapter_summaries):
-    # get openai to summarize the list of chapter summaries into one consolidated summary for the entire book
-    client = create_client()
-    system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. "
-                     "You have read several summaries of different parts of a book. "
-                     "Please provide a concise, unified summary that captures the key points from these summaries.")
-    
-    # in case token count exceeds 4096 tokens, split into chunks
+def summarize_summaries(chapter_summaries, client=None):
+    print("Inside summarize_summaries")
+    if client is None:
+        client = create_client()  # Initialize client
+
+    # Check if the token count exceeds the limit
     if num_tokens_from_string(chapter_summaries, 'r50k_base') > 4096:
         chunks = split_into_chunks(chapter_summaries)
         chunk_summaries = [summarize_chunk(chunk, client) for chunk in chunks]
-        consolidated_summary = consolidate_summaries(chunk_summaries, client)
+
+        combined_summaries = " ".join(chunk_summaries)
+        if num_tokens_from_string(combined_summaries, 'r50k_base') > 4096:
+            return summarize_summaries(combined_summaries, client)  # Recursive call with return
+        else:
+            return summarize_chunk(combined_summaries, client)  # Summarize the combined summaries
     else:
+        system_prompt = ("You are a book reader, skilled in reading chapters and summarizing them. "
+                         "You have read several summaries of different parts of a book. "
+                         "Please provide a concise, unified summary that captures the overall summary of the entire book.")
         completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -174,8 +168,11 @@ def summarize_book(chapter_summaries):
                 {"role": "user", "content": chapter_summaries}
             ]
         )
+        return completion.choices[0].message.content
 
-    return completion.choices[0].message.content
+# Example usage (assuming necessary functions and client are defined)
+# summary = summarize_summaries(your_chapter_summaries)
+
 
 
 
