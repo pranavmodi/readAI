@@ -1,11 +1,18 @@
 <template>
   <div id="app" class="flex flex-col h-screen bg-coolGray-100">
-    <header class="bg-indigo-700 text-white text-center py-4">
+    <header class="bg-gray-200 text-gray-800 text-center py-4 flex justify-between items-center">
+      <!-- Home Button in Header -->
+      <button @click="gotoHomePage" class="home-button ml-4">
+        <!-- Home Icon -->
+        <img src="@/assets/home.png" alt="Home" />
+      </button>
       <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
+      <div></div> <!-- Placeholder for alignment -->
     </header>
 
+
     <main class="flex flex-grow overflow-auto p-4">
-      <home-screen v-if="showHomeScreen" @selectBook="completeBookSelection" @fileSelected="uploadBook"/>
+      <home-screen v-if="showHomeScreen" @selectBook="completeBookSelection"/>
 
       <reading-area v-else
       :book="book"
@@ -16,27 +23,20 @@
 
     </main>
 
-    <footer class="flex justify-center bg-purple-800 p-4">
-      <!-- Conditional Footer content -->
+    <footer class="flex justify-center bg-gray-300 p-4">
       <div v-if="showHomeScreen">
-
         <input type="file" id="file-upload" @change="onFileChange" hidden>
         <label for="file-upload" class="upload-button">Upload Book</label>
-
       </div>
-      <div v-else>
+      <div v-else class="footer-buttons">
         <button @click="increaseFontSize" class="button-style font-size-increase">
           A+
         </button>
         <button @click="decreaseFontSize" class="button-style font-size-decrease">
           A-
         </button>
-        <!-- Book Summary Button -->
         <button @click="openSummary" class="button-style book-summary-button">
           Book Summary
-        </button>
-        <button @click="gotoHomePage" class="button-style home-button">
-          Home
         </button>
       </div>
     </footer>
@@ -47,7 +47,6 @@
 import ePub from 'epubjs';
 import HomeScreen from './components/HomeScreen.vue';
 import ReadingArea from './components/ReadingArea.vue';
-
 
 
 export default {
@@ -81,20 +80,19 @@ export default {
   },
   methods: {
 
-    onFileChange(e) {
+  onFileChange(e) {
     const file = e.target.files[0];
     if (file && file.type === "application/epub+zip") {
       this.epubFile = file;
       this.fileUploaded = false;
       this.chapterSummaryList = [];
-      this.showHomeScreen = false;
       const reader = new FileReader();
+      reader.readAsArrayBuffer(file);
       reader.addEventListener("load", () => {
          this.loadBook(reader.result); // reader.result contains the ArrayBuffer
-      }, false);
-      console.log("this.book value is", this.book);
-      reader.readAsArrayBuffer(file);
+      }, false);      
       this.uploadEpubFile();
+      // this.showHomeScreen = false;
 
     } else {
       alert("Please select an EPUB file.");
@@ -116,22 +114,22 @@ export default {
     async completeBookSelection(book) {
       await this.openSelectedBook(book);
 
-      this.showHomeScreen = false; // This line triggers DOM changes
-
       // Ensure handleResize is called in the next tick, after the DOM updates
-      this.$nextTick(() => {
-        try {
-          if (this.rendition) {
-            // this.handleResize(); // Call this only if rendition object is available
-          } else {
-            console.error("Rendition object is not available");
-          }
-        } catch (error) {
-          console.error("Error occurred during handleResize:", error);
-        }
-      });
-      console.log("going to upload the book for processing");
-      this.uploadEpubFile();
+
+      // console.log("going to upload the book for processing");
+      // await this.uploadEpubFile();
+      // this.showHomeScreen = false; // This line triggers DOM changes
+      // this.$nextTick(() => {
+      //   try {
+      //     if (this.rendition) {
+      //       this.handleResize(); // Call this only if rendition object is available
+      //     } else {
+      //       console.error("Rendition object is not available");
+      //     }
+      //   } catch (error) {
+      //     console.error("Error occurred during handleResize:", error);
+      //   }
+      // });
     },
 
     async openSelectedBook(book) {
@@ -178,12 +176,9 @@ export default {
     },
 
     gotoHomePage() {
-      this.showHomeScreen = true;
-      this.$nextTick(() => {
-    // Call handleResize after Vue has updated the DOM
-        //this.handleResize();
-      });
-    },
+    location.reload();
+},
+
 
     closeSummary() {
       this.showBookSummary = false;
@@ -213,91 +208,6 @@ export default {
         this.currentBookSummary += `<strong>${chapterSummary.summary.title}</strong>: ${chapterSummary.summary.summary}<br><br>`;
       }
     },
-
-    // aiAssist() {
-    //   // Step 3: Implement sending the EPUB file to the server
-    //   if (this.fileUploaded == false) {
-    //     this.uploadEpubFile();
-    //     console.log("going to upload file");
-    //   }
-    //   else {
-    //     console.log("not going to upload again");
-    //   }
-    //   // Step 4: Open the side panel
-    //   this.toggleSidePanel();
-
-    //   // Step 5: Resize the book rendition
-    //   this.handleResize();
-
-    //   this.getCurrentChapterURI()
-    // },
-
-    // async getBookSummary() {
-    //   // This function populates the chapterSummaryList array with the chapter summaries
-    //   // Get the list of chapters
-    //   if (!this.book) {
-    //     console.error("Book not loaded");
-    //     return;
-    //   }
-    //   if (this.fileUploaded == false) {
-    //     // The following line triggers the book_main using upload epub API call
-    //     this.uploadEpubFile();
-    //   }
-    //   let chapters = await this.book.spine.spineItems;
-      
-    //   for (let chapter of chapters) {
-    //     await this.fetchChapterSummary(chapter.href);
-    //   }
-    //   this.constructBookSummary();
-
-    // },
-
-
-    // fetchChapterSummary(chapterHref) {
-    //     return new Promise((resolve, reject) => {
-    //       // create endpoint combining book title and chapter href
-    //       const chapterIdentifier = this.generateChapterIdentifier(chapterHref);
-    //       const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
-    //       let attempts = 0;
-
-    //       const pollForSummary = () => {
-    //         fetch(url)
-    //           .then(response => {
-    //             if (!response.ok) {
-    //               throw new Error(`HTTP error! Status: ${response.status}`);
-    //             }
-    //             return response.json();
-    //           })
-    //           .then(data => {
-    //             if (data.status === "success") {
-    //               // push the summary as a map with keys as chapter title and summary
-    //               this.chapterSummaryList.push({chapter: chapterHref, summary: data.chapter_summary});
-    //               //this.chapterSummaryList.push(data.chapter_summary);
-    //               resolve();
-    //             } else if (data.status === "pending") {
-    //               attempts++;
-    //               if (attempts < 5) { // Retry up to 5 times
-    //                 setTimeout(pollForSummary, 5000); // Poll every 5 seconds
-    //               } else {
-    //                 console.log(`Maximum retries reached for ${chapterHref}`);
-    //                 reject(new Error(`Maximum retries reached for ${chapterHref}`));
-    //               }
-    //             } else {
-                  
-    //               console.error(`Error fetching summary for ${chapterHref}:`, data.message);
-    //               resolve();
-    //             }
-    //           })
-    //           .catch(error => {
-    //             console.log('some error here')
-    //             console.error(`Error in fetching chapter summary for ${chapterHref}:`, error.message);
-    //             resolve();
-    //           });
-    //       };
-
-    //       pollForSummary();
-    //     });
-    //   },
 
     generateChapterIdentifier(chapterName) {
       // Assuming bookTitle is set when the book is loaded
@@ -361,33 +271,34 @@ export default {
     }
   },
 
-  uploadEpubFile() {
-    // Check if this.epubFile is a File object and has a size greater than 0
-    console.log('going to upload book now')
+  async uploadEpubFile() {
+    console.log('going to upload book now');
     if (this.epubFile && this.epubFile.size > 0) {
-      const formData = new FormData();
-      formData.append('file', this.epubFile); // Assuming this.epubFile holds the file object
+        const formData = new FormData();
+        formData.append('file', this.epubFile);
 
-      fetch('http://localhost:8000/upload-epub', {
-        method: 'POST',
-        body: formData,
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
+        try {
+            const response = await fetch('http://localhost:8000/upload-epub', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            await response.json(); // If you need to do something with the response, you can assign it to a variable
+            this.fileUploaded = true;
+        } catch (error) {
+            console.error('Error:', error);
         }
-        return response.json();
-      })
-      .then(() => {
-        this.fileUploaded = true;
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-      });
     } else {
-      console.error('No valid epub file to upload');
+        console.error('No valid epub file to upload');
     }
+    console.log("the book title is ", this.bookTitle);
+    this.showHomeScreen = false;
   },
+
 
 
     handleResize() {
@@ -445,7 +356,6 @@ export default {
         this.rendition.destroy();
       }
       this.book = ePub(arrayBuffer);
-      console.log("in fucking here, this.book value is ", this.book);
 
       this.book.ready.then(() => {
         this.rendition = this.book.renderTo("book-area", {
@@ -455,10 +365,10 @@ export default {
 
         this.book.loaded.metadata.then(metadata => {
           this.bookTitle = metadata.title; // Store the book title
-          console.log("Book title:", this.bookTitle);
 
           this.rendition.themes.fontSize(`${this.fontSize}%`);
           this.rendition.display();
+          this.showHomeScreen = false;
           // console.log("before handle resize");
           // this.handleResize();
           // console.log("after handle resize");
@@ -474,6 +384,7 @@ export default {
         reject(error); // Reject the promise on error
       });
     });
+    
   },
 
     prevPage() {
@@ -526,15 +437,21 @@ export default {
 
 <style>
 /* Header and Footer styling */
-header, footer {
-  background-color: #353f4c; /* A deep, professional grey-blue */
+/* header, footer {
+  background-color: #353f4c; 
   color: white;
   padding: 16px 0;
-  transition: background-color 0.3s; /* Smooth transition for hover effect */
+  transition: background-color 0.3s; 
+} */
+
+header {
+    background-color: #f5f5f5; /* Light grey background */
+    color: white; /* White text */
+    /* Rest of your styles */
 }
 
 header:hover, footer:hover {
-  background-color: #3e4a59; /* Slightly lighter grey-blue on hover */
+  background-color: bg-gray-800; /* Slightly lighter grey-blue on hover */
 }
 
 header h1, footer div {
@@ -554,22 +471,21 @@ main {
 
 /* Button styling */
 .button-style {
-  background-color: #3ea5e5; /* Blue color similar to the upload button */
-  color: white;
-  cursor: pointer;
-  padding: 10px 20px;
-  font-weight: bold;
-  border-radius: 20px; /* Rounded corners */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow effect */
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for hover and click */
-  border: none; /* No border */
-  text-align: center;
+    background-color: transparent; /* Transparent background */
+    color: black; /* Black text color */
+    border: 2px solid black; /* Black border */
+    padding: 5px 10px; /* Padding for button size */
+    margin: 0 5px; /* Margin for spacing */
+    border-radius: 4px; /* Rounded corners */
+    transition: all 0.3s ease; /* Smooth transition for hover effect */
 }
 
+
 .button-style:hover {
-  background-color: #a2c530; /* Darker shade for hover */
-  transform: scale(1.05); /* Slightly enlarge on hover */
+    color: grey; /* Grey text color on hover */
+    border-color: grey; /* Grey border on hover */
 }
+
 
 .button-style:active {
   background-color: #87b4d6; /* Different shade for active state */
@@ -615,6 +531,39 @@ main::-webkit-scrollbar-thumb:hover {
 .upload-button:active {
   background-color: #87b4d6; /* Different shade for active state */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25); /* Slightly deeper shadow for clicked state */
+}
+
+.home-button {
+    padding: 10px; /* Increase the padding */
+    border: none; /* Optionally, remove border */
+    background-color: transparent; /* Optionally, make the background transparent */
+    cursor: pointer; /* Changes the cursor to indicate it's clickable */
+}
+
+.home-button img {
+    width: 50px; /* Increase the size of the image */
+    height: 50px; /* Maintain the aspect ratio */
+    transition: transform 0.3s ease; /* Smooth transition for the hover effect */
+}
+
+.home-button:hover img {
+    transform: scale(1.2); /* Slightly increase the image size on hover */
+    /* You can add additional effects like changing the image, border, or background here */
+}
+
+.footer-buttons {
+    display: flex; /* Enables flexbox */
+    align-items: center; /* Aligns items vertically in the center */
+    justify-content: center; /* Center the items horizontally */
+}
+
+.font-size-increase,
+.font-size-decrease {
+    margin: 0 5px; /* Small margin for spacing between font size buttons */
+}
+
+.font-size-decrease {
+    margin-right: 60px; /* Additional margin to the right of the decrease font size button */
 }
 
 </style>
