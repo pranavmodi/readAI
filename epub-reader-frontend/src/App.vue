@@ -6,7 +6,7 @@
         <!-- Home Icon -->
         <img src="@/assets/home.png" alt="Home" />
       </button>
-      <h1 class="font-bold text-3xl">My little AI-Assisted EPUB Reader</h1>
+      <h1 class="font-bold text-3xl">Little AI-Assisted EPUB Reader</h1>
       <div></div> <!-- Placeholder for alignment -->
     </header>
 
