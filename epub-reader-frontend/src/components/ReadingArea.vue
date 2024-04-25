@@ -136,8 +136,12 @@
             return axios.get(`/chapter-summary/${encodeURIComponent(chapterId)}`)
                 .then(response => {
                     if (response.data.status === 'success') {
+                        // return {
+                        //     title: chapter.href,
+                        //     content: response.data.chapter_summary.summary
+                        // };
                         return {
-                            title: chapter.href,
+                            title: response.data.chapter_summary.title,
                             content: response.data.chapter_summary.summary
                         };
                     } else {
@@ -178,6 +182,8 @@
             }
         }
     },
+
+  
 
 
   mounted() {
