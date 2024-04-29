@@ -18,6 +18,8 @@
       :book="book"
       :showBookSummary="showBookSummary"
       :bookTitle="bookTitle"
+      :showChat="showChat"
+      @closeChat="handleCloseChat"
       @closeSummary="showBookSummary = false"
       @handleresize="handleResize"/>
 
@@ -37,6 +39,9 @@
         </button>
         <button @click="openSummary" class="button-style book-summary-button">
           Book Summary
+        </button>
+        <button @click="displayChat" class="button-style chat-toggle-button">
+          Chat with Book
         </button>
       </div>
     </footer>
@@ -59,6 +64,7 @@ export default {
     return {
       book: null,
       showBookSummary: false,
+      showChat: false,
       showHomeScreen: true,
       currentBookSummary: 'Default book summary',
       chapterSummaryList: [],
@@ -99,38 +105,17 @@ export default {
     }
 },
 
-
-    // async completeBookSelection(book) {
-
-    //   await this.openSelectedBook(book);
-    //   console.log("fuck yeah");
-    //   this.showHomeScreen = false;
-    //   // on nexttick handle resize
-    //   this.$nextTick(() => {
-    //     this.handleResize();
-    //   });
-    // },
-
     async completeBookSelection(book) {
       await this.openSelectedBook(book);
-
-      // Ensure handleResize is called in the next tick, after the DOM updates
-
-      // console.log("going to upload the book for processing");
-      // await this.uploadEpubFile();
-      // this.showHomeScreen = false; // This line triggers DOM changes
-      // this.$nextTick(() => {
-      //   try {
-      //     if (this.rendition) {
-      //       this.handleResize(); // Call this only if rendition object is available
-      //     } else {
-      //       console.error("Rendition object is not available");
-      //     }
-      //   } catch (error) {
-      //     console.error("Error occurred during handleResize:", error);
-      //   }
-      // });
     },
+
+    displayChat() {
+      this.showChat = true;
+    },
+
+    handleCloseChat() {
+      this.showChat = false;
+  },
 
     async openSelectedBook(book) {
       
@@ -179,6 +164,9 @@ export default {
     location.reload();
 },
 
+    closeChat() {
+      this.showChat = false;
+    },
 
     closeSummary() {
       this.showBookSummary = false;
@@ -250,17 +238,6 @@ export default {
           console.error("Error in fetching chapter summary:", error.message);
         });
     },
-
-    // showAIExplanation() {
-    //   // Logic to show AI explanation
-    //   console.log('AI Explanation button clicked');
-    // },
-
-    // toggleSidePanel() {
-    //   this.isSidePanelOpen = !this.isSidePanelOpen; // Toggle the state
-    //   //this.resizeBookForSidePanel(); // Resize accordingly
-    // },
-
 
     resizeBookForSidePanel() {
     const sidePanelWidth = this.isSidePanelOpen ? 300 : 0; // Assuming 300px width for the side panel

@@ -1,52 +1,73 @@
+
 <template>
-  <div class="reading-area flex flex-col items-center justify-center">
-      <!-- if showsummary is not true show book-area -->
-      <div id="book-area" class="bg-white shadow-md rounded p-4">
-      </div>
-
-      <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
-          <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
-            
-            <!-- Close button and Toggle Switch in the same row -->
-            <div class="flex items-center mb-4">
-                <!-- Close button with left arrow -->
-                <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-                    &#8592; <!-- This is a left arrow symbol -->
-                </button>
-
-                <!-- Styled Toggle Switch -->
-                <div class="toggle-switch">
-                    <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
-                    <label for="bookSummary">Book Summary</label>
-                    
-                    <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
-                    <label for="chapterSummary">Chapter Summaries</label>
+    <div class="reading-area flex flex-col items-center justify-center">
+        <!-- if showsummary is not true show book-area -->
+        <div id="book-area" class="bg-white shadow-md rounded p-4">
+        </div>
+  
+        <!-- Chat Interface Overlay -->
+        <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300">
+              <div class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4">
+                  <div class="chat-header flex justify-between items-center p-2 bg-gray-200 rounded-t-lg">
+                      <h2 class="text-lg font-semibold">Chat with Book AI</h2>
+                      <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
+                  </div>
+                  <div class="chat-messages flex-1 overflow-y-auto p-2">
+                      <!-- Messages will be displayed here -->
+                      <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
+                          {{ message.text }}
+                      </div>
+                  </div>
+                  <div class="chat-input w-full p-2">
+                      <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
+                      <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
+                  </div>
+              </div>
+         </div>
+  
+        <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
+            <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
+              <!-- Close button and Toggle Switch in the same row -->
+              <div class="flex items-center mb-4">
+                  <!-- Close button with left arrow -->
+                  <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+                      &#8592; <!-- This is a left arrow symbol -->
+                  </button>
+  
+                  <!-- Styled Toggle Switch -->
+                  <div class="toggle-switch">
+                      <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
+                      <label for="bookSummary">Book Summary</label>
+                      
+                      <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
+                      <label for="chapterSummary">Chapter Summaries</label>
+                  </div>
+              </div>
+  
+              <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
+                <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
+                <div class="book-summary-content">
+                    <p>{{ this.bookSummary }}</p>
                 </div>
-            </div>
-
-            <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
-              <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
-              <div class="book-summary-content">
-                  <p>{{ this.bookSummary }}</p>
+              </div>
+  
+              <!-- Chapter Summaries -->
+              <div v-else-if="selectedSummaryType === 'chapter'">
+                <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
+                  <h3>{{ summary.title }}</h3>
+                  <p>{{ summary.content }}</p>
+                </div>
               </div>
             </div>
-
-            <!-- Chapter Summaries -->
-            <div v-else-if="selectedSummaryType === 'chapter'">
-              <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
-                <h3>{{ summary.title }}</h3>
-                <p>{{ summary.content }}</p>
-              </div>
-            </div>
-          </div>
-      </div>
-
-      <!-- Other buttons and functionality specific to reading a book -->
-      <div class="button-group space-x-2">
-          <!-- Buttons for navigation, font size adjustment, etc. -->
-      </div>
-  </div>
-</template>
+        </div>
+  
+        <!-- Other buttons and functionality specific to reading a book -->
+        <div class="button-group space-x-2">
+            <!-- Buttons for navigation, font size adjustment, etc. -->
+        </div>
+    </div>
+  </template>
+  
 
   
   <script>
@@ -58,29 +79,23 @@
     props: {
         book: Object,
         showBookSummary: Boolean,
-        bookTitle: String
+        bookTitle: String,
+        showChat: Boolean
     },
 
     data() {
     return {
         selectedSummaryType: "book",
         bookSummary: null,
-        // chapterSummaries: [{ 
-        //                             title: "Chapter 1 Summary", 
-        //                             content: "Chapter 1 summary"
-        //                   }, 
-        //                   { 
-        //                             title: "Chapter 2 Summary", 
-        //                             content: "Chapter 2 summary"
-        //                   }, 
-        //                   { 
-        //                             title: "Chapter 3 Summary", 
-        //                             content: "Chapter 3 summary"
-        //                   }],
         chapterSummaries: null,
     };
   },
     methods: {
+
+        closeChat() {
+            this.$emit("closeChat"); 
+        },
+
         closeSummary() {
             this.$emit("closeSummary"); 
             this.$emit("handleresize");        
@@ -322,5 +337,34 @@
     line-height: 1.6; /* Line height for better readability */
     color: #555; /* Slightly lighter color for the content */
 }
+
+.chat-overlay {
+    z-index: 1000; /* Ensures the overlay is above all other content */
+    align-items: flex-start; /* Aligns the chat container to the top */
+}
+
+.chat-container {
+    margin-top: 50px; /* Adds space from the top of the viewport */
+    height: calc(100vh - 100px); /* Adjusts height based on the viewport */
+}
+
+.chat-header {
+    background-color: #f0f0f0; /* Lighter background for the header */
+}
+
+.chat-messages {
+    background-color: #fff; /* White background for better readability */
+    margin-bottom: 10px; /* Space before the input section */
+}
+
+.chat-message {
+    word-wrap: break-word; /* Ensures messages do not overflow */
+}
+
+.chat-input input {
+    margin-right: 8px; /* Space between the input field and the send button */
+    flex-grow: 1; /* Allows the input field to fill the space */
+}
+
   </style>
   
