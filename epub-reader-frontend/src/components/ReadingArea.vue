@@ -8,7 +8,7 @@
         <!-- Chat Interface Overlay -->
         <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300">
               <div class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4">
-                  <div class="chat-header flex justify-between items-center p-2 bg-gray-200 rounded-t-lg">
+                  <div class="chat-header flex justify-between items-center p-2 rounded-t-lg">
                       <h2 class="text-lg font-semibold">Chat with Book AI</h2>
                       <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
                   </div>
@@ -88,9 +88,45 @@
         selectedSummaryType: "book",
         bookSummary: null,
         chapterSummaries: null,
+        messages: [],
+        newMessage: '',
+
     };
   },
     methods: {
+
+        sendMessage() {
+        if (!this.newMessage.trim()) return;  // Prevent sending empty messages
+
+        // Construct the user message
+        const userMessage = {
+            id: Date.now(),  // Unique ID for the message
+            text: this.newMessage,
+            is_user: true
+        };
+
+        // Push the user message to the messages array
+        this.messages.push(userMessage);
+
+        // Clear the input field
+        this.newMessage = '';
+        // Simulate API response
+        setTimeout(() => {
+            const aiResponse = {
+                id: Date.now(),
+                text: "This is a simulated response from the AI.",
+                is_user: false
+            };
+            this.messages.push(aiResponse);
+        }, 1000);
+
+        // Optional: Scroll to the bottom of the chat view
+            this.$nextTick(() => {
+                const container = this.$el.querySelector(".chat-messages");
+                container.scrollTop = container.scrollHeight;
+            });
+        },
+
 
         closeChat() {
             this.$emit("closeChat"); 
@@ -349,7 +385,7 @@
 }
 
 .chat-header {
-    background-color: #f0f0f0; /* Lighter background for the header */
+    background-color: #f34c4c; /* Lighter background for the header */
 }
 
 .chat-messages {
