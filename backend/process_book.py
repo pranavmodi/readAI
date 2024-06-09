@@ -21,8 +21,8 @@ def connect_to_mongodb():
     try:
         # The ismaster command is cheap and does not require auth.
         client.admin.command('ismaster')
-        print("MongoDB is connected")
-        logging.info("MongoDB is connected")
+        # print("MongoDB is connected")
+        # logging.info("MongoDB is connected")
     except ConnectionFailure:
         print("Server not available")
         logging.info("Server not available")

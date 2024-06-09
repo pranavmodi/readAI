@@ -2,6 +2,10 @@ from flask import Flask, jsonify, request, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from process_book import book_main, lookup_summary, lookup_book_summary
+from PIL import Image
+from io import BytesIO
+import zipfile
+from lxml import etree
 import os
 import threading
 import logging
@@ -9,6 +13,26 @@ import logging
 
 app = Flask(__name__)
 CORS(app)
+
+BOOKS_DIR = 'static/epubs'
+THUMBNAILS_DIR = 'static/thumbnails'
+
+if not os.path.exists(BOOKS_DIR):
+    os.makedirs(BOOKS_DIR)
+
+if not os.path.exists(THUMBNAILS_DIR):
+    os.makedirs(THUMBNAILS_DIR)
+
+namespaces = {
+    "calibre": "http://calibre.kovidgoyal.net/2009/metadata",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "opf": "http://www.idpf.org/2007/opf",
+    "u": "urn:oasis:names:tc:opendocument:xmlns:container",
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+}
+
+
 
 @app.route('/')
 def hello():
@@ -20,36 +44,41 @@ def clean_book_name(name):
 
 
 
+def get_epub_cover(epub_path):
+    with zipfile.ZipFile(epub_path) as z:
+        t = etree.fromstring(z.read("META-INF/container.xml"))
+        rootfile_path = t.xpath("/u:container/u:rootfiles/u:rootfile", namespaces=namespaces)[0].get("full-path")
+        t = etree.fromstring(z.read(rootfile_path))
+        cover_id = t.xpath("//opf:metadata/opf:meta[@name='cover']", namespaces=namespaces)[0].get("content")
+        cover_href = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']", namespaces=namespaces)[0].get("href")
+        cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
+        return z.open(cover_path)
+
 @app.route('/get-books')
 def get_books():
-    # Define directories for books and thumbnails
-    books_dir = 'epubs'  # No need to include 'static/' here
-    thumbnails_dir = 'thumbnails'  # No need to include 'static/' here
-
     # List .epub files in the books directory
-    book_files = [f for f in os.listdir(os.path.join('static', books_dir)) if f.endswith('.epub')]
+    book_files = [f for f in os.listdir(BOOKS_DIR) if f.endswith('.epub')]
 
     # Prepare the list of books with their epub paths and thumbnail URLs
     books = []
     for book_file in book_files:
         book_name = os.path.splitext(book_file)[0]
-        epub_path = os.path.join(books_dir, book_file)
-        thumbnail_path = os.path.join(thumbnails_dir, book_name + '.jpg')
+        epub_path = os.path.join(BOOKS_DIR, book_file)
+        thumbnail_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
 
         # Check if the thumbnail file exists
-        if os.path.exists(os.path.join('static', thumbnail_path)):
-            thumbnail_url = url_for('static', filename=thumbnail_path)
+        if os.path.exists(thumbnail_path):
+            thumbnail_url = url_for('static', filename=os.path.join('thumbnails', book_name + '.jpg'))
         else:
             thumbnail_url = None  # or a URL to a default placeholder image
 
         books.append({
             "name": clean_book_name(book_name),
-            "epub": url_for('static', filename=epub_path),
+            "epub": url_for('static', filename=os.path.join('epubs', book_file)),
             "thumbnail": thumbnail_url
         })
 
     return jsonify(books)
-
 
 
 @app.route('/upload-epub', methods=['POST'])
@@ -62,19 +91,27 @@ def upload_epub():
 
     if file.filename == '':
         return 'No selected file', 400
-    
+
     if file:
         filename = secure_filename(file.filename)
-        file_path = os.path.join('.', filename)
+        file_path = os.path.join(BOOKS_DIR, filename)
         file.save(file_path)
 
-        # Start a new thread for processing the ePub file
+        try:
+            cover_image = get_epub_cover(file_path)
+            book_name = os.path.splitext(os.path.basename(file_path))[0]
+            cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
+            image = Image.open(cover_image)
+            image.save(cover_image_path, 'JPEG')
+        except Exception as e:
+            logging.warning("No cover image found for book: %s", book_name)
+
         logging.info("Starting a new thread for processing the ePub file")
         thread = threading.Thread(target=book_main, args=(file_path,))
         thread.start()
 
-        # Return response immediately
         return jsonify({"message": "File upload initiated", "filename": filename})
+
 
 
 @app.route('/book-summary/<path:book_title>', methods=['GET'])
