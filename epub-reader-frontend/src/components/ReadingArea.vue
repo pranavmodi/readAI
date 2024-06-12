@@ -6,24 +6,29 @@
         </div>
   
         <!-- Chat Interface Overlay -->
-        <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300">
-              <div class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4">
-                  <div class="chat-header flex justify-between items-center p-2 rounded-t-lg">
-                      <h2 class="text-lg font-semibold">Chat with Book AI</h2>
-                      <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
-                  </div>
-                  <div class="chat-messages flex-1 overflow-y-auto p-2">
-                      <!-- Messages will be displayed here -->
-                      <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
-                          {{ message.text }}
-                      </div>
-                  </div>
-                  <div class="chat-input w-full p-2">
-                      <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
-                      <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
-                  </div>
-              </div>
-         </div>
+        <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300" style="pointer-events: none;">
+            <div 
+                class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4" 
+                :style="{ top: chatPosition.top, right: chatPosition.right, position: 'absolute', pointerEvents: 'auto' }"
+                @mousedown="startDrag"
+                @mouseup="stopDrag"
+                @mousemove="drag">
+                <div class="chat-header flex justify-between items-center p-2 rounded-t-lg cursor-move">
+                <h2 class="text-lg font-semibold">Chat with Book AI</h2>
+                <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
+                </div>
+                <div class="chat-messages flex-1 overflow-y-auto p-2">
+                <!-- Messages will be displayed here -->
+                <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
+                    {{ message.text }}
+                </div>
+                </div>
+                <div class="chat-input w-full p-2">
+                <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
+                <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
+                </div>
+            </div>
+        </div>
   
         <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
             <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
@@ -90,7 +95,12 @@
         chapterSummaries: null,
         messages: [],
         newMessage: '',
-
+        isDragging: false,
+        dragStartX: 0,
+        dragStartY: 0,
+        chatPosition: { top: '12rem', right: '1rem' },
+        chatStartTop: 0,
+        chatStartRight: 0
     };
   },
     methods: {
@@ -127,6 +137,29 @@
             });
         },
 
+        startDrag(event) {
+            this.isDragging = true;
+            this.dragStartX = event.clientX;
+            this.dragStartY = event.clientY;
+            this.chatStartTop = parseFloat(this.chatPosition.top);
+            this.chatStartRight = parseFloat(this.chatPosition.right);
+            document.addEventListener('mousemove', this.drag);
+            document.addEventListener('mouseup', this.stopDrag);
+        },
+
+        stopDrag() {
+            this.isDragging = false;
+        },
+
+        drag(event) {
+        if (this.isDragging) {
+            const deltaX = event.clientX - this.dragStartX;
+            const deltaY = event.clientY - this.dragStartY;
+            // Convert the start position and delta into pixels and adjust accordingly
+            this.chatPosition.right = `${this.chatStartRight - deltaX}px`;
+            this.chatPosition.top = `${this.chatStartTop + deltaY}px`;
+            }
+        },
 
         closeChat() {
             this.$emit("closeChat"); 
@@ -266,18 +299,18 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Larger shadow on hover */
 }
 
-  .toggle-switch {
+.toggle-switch {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px; /* Adds space between the two buttons */
-  }
-  
-  .toggle-switch input[type="radio"] {
+}
+
+.toggle-switch input[type="radio"] {
     display: none;
-  }
-  
-  .toggle-switch label {
+}
+
+.toggle-switch label {
     cursor: pointer;
     padding: 10px 20px;
     background-color: #f0f0f0;
@@ -286,28 +319,27 @@
     transition: background-color 0.3s, color 0.3s, transform 0.3s; /* Smooth transitions */
     border-radius: 20px; /* Rounded corners */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Adds a subtle shadow */
-  }
-  
-  .toggle-switch input[type="radio"]:checked + label {
+}
+
+.toggle-switch input[type="radio"]:checked + label {
     background-color: #4CAF50; /* A green background for selected */
     color: white;
     transform: scale(1.05); /* Slightly enlarges the selected button */
-  }
-  
-  /* Hover effect */
-  .toggle-switch label:hover {
+}
+
+/* Hover effect */
+.toggle-switch label:hover {
     background-color: #ddd; /* Light grey background on hover */
-  }
-  
-  /* Overlay content styling */
-  .overlay-content {
+}
+
+/* Overlay content styling */
+.overlay-content {
     background-color: #ffffff; /* Ensures the background is white */
     border-radius: 15px; /* Rounded corners for the overlay */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow for the overlay */
     max-height: 80vh; /* 80% of the viewport height */
     overflow-y: auto; /* enables vertical scrolling */
-  }
-
+}
 
 .chapter-summary {
     background-color: #f8f8f8; /* Light background for each summary */
@@ -354,7 +386,6 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
     margin-top: 20px;
     transition: box-shadow 0.3s ease, transform 0.3s ease; /* Smooth transition for hover effects */
-
 }
 
 .book-summary-container:hover {
@@ -382,10 +413,14 @@
 .chat-container {
     margin-top: 50px; /* Adds space from the top of the viewport */
     height: calc(100vh - 100px); /* Adjusts height based on the viewport */
+    cursor: move; /* Indicates draggable area */
+    top: 12rem; 
+    right: 1rem;
 }
 
 .chat-header {
     background-color: #f34c4c; /* Lighter background for the header */
+    cursor: move; /* Indicates draggable area */
 }
 
 .chat-messages {
@@ -401,6 +436,6 @@
     margin-right: 8px; /* Space between the input field and the send button */
     flex-grow: 1; /* Allows the input field to fill the space */
 }
+</style>
 
-  </style>
   
