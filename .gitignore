@@ -1,0 +1,10 @@
+readai/
+backend/static/*
+.DS_Store
+__pycache__/
+frontend/node_modules
+frontend/epub-reader-app/node_modules/
+frontend/epub-reader-frontend/node_modules/
+backend/*.epub
+AWSCLIV2.pkg
+*.env
