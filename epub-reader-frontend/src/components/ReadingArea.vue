@@ -173,6 +173,8 @@
         onShowBookSummaryChanged(newValue) {
             if (newValue) {
                 console.log("showsummary turned true, ", this.bookTitle);
+                this.getBookSummary();
+                this.getChapterSummaries();
             }
         },
         

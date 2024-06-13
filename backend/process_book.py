@@ -56,7 +56,6 @@ def lookup_book_summary(book_title):
         # Handle case where no summary is found
         return None
 
-# Function to process the ePub file
 def process_epub(file_path, collection, rewrite=False):
     logging.info("Inside process_epub, the file_path is %s", file_path)
     book = epub.read_epub(file_path)
@@ -76,13 +75,13 @@ def process_epub(file_path, collection, rewrite=False):
 
         # Check if the summary for this chapter already exists in the database
         existing_summary = collection.find_one({"chapter_identifier": chapter_identifier})
-        # logging.info("existing_summary is %s", existing_summary)
-        if existing_summary is None or rewrite is True or existing_summary['chapter_summary'] is None:
+        logging.info("existing_summary is %s", existing_summary)
+        if existing_summary is None or rewrite is True or existing_summary.get('chapter_summary') is None:
             # logging.info("Going to process again for chapter number %s", chapter_count)
             # logging.info("checking if null, the existing_summary is %s", existing_summary['chapter_summary'])
             # Summary not found in database, generate it
             chapter_summary = summarize_book_chapter(chapter_content)
-            chapter_summaries.append(chapter_summary)
+            chapter_summaries.append({'chapter_summary': chapter_summary})
 
             # Store the chapter summary, count, and identifier in the database
             document = {
@@ -109,7 +108,7 @@ def process_epub(file_path, collection, rewrite=False):
         logging.info("Book summary already exists, skipping processing for book: %s", existing_book_summary)
         return
     else:
-        consolidated_summary = summarize_summaries(" ".join(cs["chapter_summary"]['summary'] for cs in chapter_summaries if cs["chapter_summary"]['is_main_content']))
+        consolidated_summary = summarize_summaries(" ".join(chapter['chapter_summary']['summary'] for chapter in chapter_summaries if 'chapter_summary' in chapter))
         document = {
             'book': book_title,
             'is_book_summary': True,  # Flag to indicate that this is a book summary
@@ -117,6 +116,7 @@ def process_epub(file_path, collection, rewrite=False):
         }
         print(document)
         collection.insert_one(document)
+
 
 
 # Function to create indexes in MongoDB
