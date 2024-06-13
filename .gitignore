@@ -1,5 +1,6 @@
 readai/
 backend/static/*
+epub-reader-frontend/.gitignore
 .DS_Store
 __pycache__/
 frontend/node_modules
