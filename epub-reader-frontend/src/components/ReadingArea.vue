@@ -1,6 +1,7 @@
 
 <template>
     <div class="reading-area flex flex-col items-center justify-center">
+
         <!-- if showsummary is not true show book-area -->
         <div id="book-area" class="bg-white shadow-md rounded p-4">
         </div>
@@ -32,37 +33,44 @@
   
         <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
             <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
-              <!-- Close button and Toggle Switch in the same row -->
-              <div class="flex items-center mb-4">
-                  <!-- Close button with left arrow -->
-                  <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-                      &#8592; <!-- This is a left arrow symbol -->
-                  </button>
-  
-                  <!-- Styled Toggle Switch -->
-                  <div class="toggle-switch">
-                      <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
-                      <label for="bookSummary">Book Summary</label>
-                      
-                      <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
-                      <label for="chapterSummary">Chapter Summaries</label>
-                  </div>
-              </div>
-  
-              <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
-                <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
-                <div class="book-summary-content">
+                <div class="flex flex-col w-full">
+                <!-- Progress Bar -->
+                <div v-if="showProgressBar" class="progress-bar-container mb-4">
+                    <div class="progress-bar" :style="{ width: progress + '%' }"></div>
+                </div>
+                <!-- Close button and Toggle Switch in the same row -->
+                <div class="flex items-center mb-4">
+                    <!-- Close button with left arrow -->
+                    <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+                    &#8592; <!-- This is a left arrow symbol -->
+                    </button>
+
+                    <!-- Styled Toggle Switch -->
+                    <div class="toggle-switch">
+                    <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
+                    <label for="bookSummary">Book Summary</label>
+
+                    <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
+                    <label for="chapterSummary">Chapter Summaries</label>
+                    </div>
+                </div>
+
+                <!-- Book Summary -->
+                <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
+                    <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
+                    <div class="book-summary-content">
                     <p>{{ this.bookSummary }}</p>
+                    </div>
                 </div>
-              </div>
-  
-              <!-- Chapter Summaries -->
-              <div v-else-if="selectedSummaryType === 'chapter'">
-                <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
-                  <h3>{{ summary.title }}</h3>
-                  <p>{{ summary.content }}</p>
+
+                <!-- Chapter Summaries -->
+                <div v-else-if="selectedSummaryType === 'chapter'">
+                    <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
+                    <h3>{{ summary.title }}</h3>
+                    <p>{{ summary.content }}</p>
+                    </div>
                 </div>
-              </div>
+                </div>
             </div>
         </div>
   
@@ -76,7 +84,7 @@
 
   
   <script>
-
+  import { io } from 'socket.io-client';
   import axios from 'axios';
   axios.defaults.baseURL = 'http://localhost:8000/';
 
@@ -100,10 +108,34 @@
         dragStartY: 0,
         chatPosition: { top: '12rem', right: '1rem' },
         chatStartTop: 0,
-        chatStartRight: 0
+        chatStartRight: 0,
+        showProgressBar: false,
+        progress: 0
     };
   },
     methods: {
+
+        startSummaryGeneration() {
+            this.showProgressBar = true;
+            const socket = io('http://localhost:8000');
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+            });
+
+            socket.on('progress_update', (data) => {
+                this.progress = data.progress;
+                console.log("the progress is", this.progress);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+
+            // Trigger backend to start summary generation
+            this.getBookSummary();
+            this.getChapterSummaries();
+        },
 
         sendMessage() {
         if (!this.newMessage.trim()) return;  // Prevent sending empty messages
@@ -170,13 +202,13 @@
             this.$emit("handleresize");        
         },
 
-        onShowBookSummaryChanged(newValue) {
-            if (newValue) {
-                console.log("showsummary turned true, ", this.bookTitle);
-                this.getBookSummary();
-                this.getChapterSummaries();
-            }
-        },
+        // onShowBookSummaryChanged(newValue) {
+        //     if (newValue) {
+        //         console.log("showsummary turned true, ", this.bookTitle);
+        //         this.getBookSummary();
+        //         this.getChapterSummaries();
+        //     }
+        // },
         
         getBookSummary() {
             const encodedBookTitle = encodeURIComponent(this.bookTitle);
@@ -256,7 +288,11 @@
     watch: {
         showBookSummary: function (newValue) {
             // console.log("Show book summary changed to:", newValue);
-            this.onShowBookSummaryChanged(newValue);
+            // this.onShowBookSummaryChanged(newValue);
+            if (newValue){
+                this.startSummaryGeneration();
+            }
+            
         },
         selectedSummaryType: function (newValue) {
             console.log("Selected summary type changed for book:", this.bookTitle);
@@ -285,6 +321,20 @@
   </script>
   
   <style>
+.progress-bar-container {
+  width: 100%;
+  background-color: #f3f3f3;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #4caf50;
+  transition: width 0.3s ease;
+}
+
 .close-btn {
     background-color: #007bff; /* Blue background for the button */
     color: white; /* White text color */

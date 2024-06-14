@@ -9,10 +9,12 @@ from lxml import etree
 import os
 import threading
 import logging
-
+from flask_socketio import SocketIO, emit
+import time
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 BOOKS_DIR = 'static/epubs'
 THUMBNAILS_DIR = 'static/thumbnails'
@@ -32,17 +34,21 @@ namespaces = {
     "xsi": "http://www.w3.org/2001/XMLSchema-instance",
 }
 
+@socketio.on('connect')
+def test_connect():
+    print('Client connected')
 
+@socketio.on('disconnect')
+def test_disconnect():
+    print('Client disconnected')
 
 @app.route('/')
 def hello():
-    return '<p> Hello, new  World!</p> '
+    return '<p>Hello, new World!</p>'
 
 def clean_book_name(name):
     """Converts file-based names to more readable titles by replacing hyphens and underscores with spaces and capitalizing each word."""
     return ' '.join(word.capitalize() for word in name.replace('_', ' ').replace('-', ' ').split())
-
-
 
 def get_epub_cover(epub_path):
     with zipfile.ZipFile(epub_path) as z:
@@ -80,7 +86,6 @@ def get_books():
 
     return jsonify(books)
 
-
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
     logging.info("Inside upload_epub")
@@ -107,12 +112,11 @@ def upload_epub():
             logging.warning("No cover image found for book: %s", book_name)
 
         logging.info("Starting a new thread for processing the ePub file")
-        thread = threading.Thread(target=book_main, args=(file_path,))
+        # thread = threading.Thread(target=book_main, args=(file_path,))
+        thread = threading.Thread(target=book_main, args=(file_path, socketio))
         thread.start()
 
         return jsonify({"message": "File upload initiated", "filename": filename})
-
-
 
 @app.route('/book-summary/<path:book_title>', methods=['GET'])
 def book_summary(book_title):
@@ -134,7 +138,6 @@ def book_summary(book_title):
             "message": "Summary not found for book: " + book_title
         }), 404
 
-
 @app.route('/chapter-summary/<path:chapter_id>', methods=['GET'])
 def get_summary(chapter_id):
     # Query the database for the summary
@@ -153,9 +156,5 @@ def get_summary(chapter_id):
             "message": "Summary is pending for chapter ID: " + chapter_id
         })
 
-
-    
-
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=8000)
+    socketio.run(app, host='0.0.0.0', port=8000, debug=True)

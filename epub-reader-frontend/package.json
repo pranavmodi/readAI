@@ -14,7 +14,8 @@
     "epubjs": "^0.3.93",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
-    "vue": "^3.2.13"
+    "vue": "^3.2.13",
+    "socket.io-client": "^4.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
