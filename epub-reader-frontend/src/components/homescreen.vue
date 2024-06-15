@@ -25,7 +25,6 @@
     props: ['booksUrl'],
     methods: {
       selectBook(book) {
-        console.log("muthafucka book selected");
         this.$emit('selectBook', book);
       },
       

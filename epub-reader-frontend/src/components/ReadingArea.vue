@@ -94,7 +94,8 @@
         book: Object,
         showBookSummary: Boolean,
         bookTitle: String,
-        showChat: Boolean
+        showChat: Boolean,
+        filename: String
     },
 
     data() {
@@ -115,7 +116,6 @@
     };
   },
     methods: {
-
         async checkProcessingStatus(filename) {
             try {
                 const response = await fetch(`http://localhost:8000/status-epub?filename=${filename}`);
@@ -132,17 +132,38 @@
             }
         },
 
-        startSummaryGeneration() {
+        checkSummaryGeneration() {
             this.showProgressBar = true;
             const socket = io('http://localhost:8000');
 
+            // Move the fetch API call outside the connect event handler
+            console.log('this.filename', this.filename)
+            fetch('http://localhost:8000/process-epub', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filename: this.filename })  // Adjust payload as necessary
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Book processing initiated:', data);
+            })
+            .catch(error => {
+                console.error('Error in book processing:', error);
+            });
+
             socket.on('connect', () => {
-                console.log('Connected to server');
+                console.log('Connected to server, ready to receive updates');
             });
 
             socket.on('progress_update', (data) => {
                 this.progress = data.progress;
-                console.log("the progress is", this.progress);
             });
 
             socket.on('disconnect', () => {
@@ -152,11 +173,11 @@
                 this.getChapterSummaries();
             });
 
-            // Trigger backend to start summary generation
-            // this.getBookSummary();
-            // this.getChapterSummaries();
-            console.log("end of startsummarygeneration!!! ")
+            console.log("End of checkSummaryGeneration!!! ");
         },
+
+
+
 
         sendMessage() {
         if (!this.newMessage.trim()) return;  // Prevent sending empty messages
@@ -308,10 +329,12 @@
   },
     watch: {
         showBookSummary: function (newValue) {
-            // console.log("Show book summary changed to:", newValue);
+            console.log("Show book summary changed to:", newValue);
             // this.onShowBookSummaryChanged(newValue);
             if (newValue){
-                this.startSummaryGeneration();
+                this.checkSummaryGeneration();
+
+
             }
             
         },

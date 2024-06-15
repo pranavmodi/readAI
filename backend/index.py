@@ -82,6 +82,7 @@ def get_books():
 
         books.append({
             "name": clean_book_name(book_name),
+            "filename":book_file,
             "epub": url_for('static', filename=os.path.join('epubs', book_file)),
             "thumbnail": thumbnail_url
         })
@@ -137,7 +138,18 @@ def upload_epub():
         file_path = os.path.join(BOOKS_DIR, filename)
         file.save(file_path)
 
+        try:
+            cover_image = get_epub_cover(file_path)
+            book_name = os.path.splitext(os.path.basename(file_path))[0]
+            cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
+            image = Image.open(cover_image)
+            image.save(cover_image_path, 'JPEG')
+            logging.info("Cover image saved for book: %s", book_name)
+        except Exception as e:
+            logging.warning("No cover image found for book: %s", book_name)
+
         return jsonify({"message": "File upload successful", "filename": filename})
+
     
 
 @app.route('/process-epub', methods=['POST'])
@@ -150,18 +162,12 @@ def process_epub():
         return 'No filename provided', 400
 
     file_path = os.path.join(BOOKS_DIR, filename)
+    logging.info("the books_dir is %s and the filename is %s", BOOKS_DIR, filename)
+    logging.info("The file path is: %s", file_path)
 
     if not os.path.exists(file_path):
+        logging.info("The file not found")
         return 'File not found', 404
-
-    try:
-        cover_image = get_epub_cover(file_path)
-        book_name = os.path.splitext(os.path.basename(file_path))[0]
-        cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
-        image = Image.open(cover_image)
-        image.save(cover_image_path, 'JPEG')
-    except Exception as e:
-        logging.warning("No cover image found for book: %s", book_name)
 
     logging.info("Starting a new thread for processing the ePub file")
     thread = threading.Thread(target=book_main, args=(file_path, socketio))

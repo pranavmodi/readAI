@@ -47,9 +47,7 @@ def lookup_summary(chapter_id):
 def lookup_book_summary(book_title):
     # Query the database for the summary
     collection = connect_to_mongodb()
-    print('Inside lookup_book_summary, the requested book_title is', book_title)
     summary_document = collection.find_one({"book": book_title, "is_book_summary": True})
-    print('summary_document is', summary_document)
     if summary_document:
         # Return the summary if found
         return summary_document['book_summary']
@@ -79,8 +77,8 @@ def check_summaries(file_path, collection, rewrite=False, socketio=None):
         return False
 
 
-def process_epub(file_path, collection, rewrite=False, socketio=None):
-    logging.info("Inside process_epub, the file_path is %s", file_path)
+def process_epub(file_path, collection, socketio, rewrite=False):
+    logging.info("wth Inside process_epub, the file_path is %s", file_path)
     book = epub.read_epub(file_path)
     chapter_count = 0  # Initialize a counter for chapters
     book_title = book.get_metadata('DC', 'title')[0][0]
@@ -119,14 +117,13 @@ def process_epub(file_path, collection, rewrite=False, socketio=None):
         # Emit progress update
         if socketio:
             progress = int((chapter_count / (total_chapters + 1)) * 100)
-            logging.info("the chapters count is %s, the total chapters is %s", chapter_count, total_chapters + 1)
+            logging.info("the hello stupid chapters count is %s, the total chapters is %s", chapter_count, total_chapters + 1)
             socketio.emit('progress_update', {'progress': progress})
 
     # Now summarizing all the chapters to get a unified summary of the book as a whole
     existing_book_summary = lookup_book_summary(book_title)
     if existing_book_summary:
         logging.info("Book summary already exists, skipping processing for book: %s", existing_book_summary)
-        return
     else:
         consolidated_summary = summarize_summaries(" ".join(chapter['chapter_summary']['summary'] for chapter in chapter_summaries if 'chapter_summary' in chapter and chapter['chapter_summary']['is_main_content']))
         document = {
@@ -134,14 +131,16 @@ def process_epub(file_path, collection, rewrite=False, socketio=None):
             'is_book_summary': True,  # Flag to indicate that this is a book summary
             'book_summary': consolidated_summary
         }
+        logging.info("wtf is going on")
         collection.insert_one(document)
     if socketio:
         progress = int(((chapter_count + 1) / (total_chapters + 1)) * 100)
         socketio.emit('progress_update', {'progress': progress})
+        logging.info("coming here now")
 
+    logging.info("going to disconnect now")
     socketio.emit('disconnect', {'book_title': book_title})
     socketio.disconnect()
-
 
 
 
@@ -175,7 +174,7 @@ def book_main(file_path, socketio):
         collection = connect_to_mongodb()
         create_indexes(collection)
 
-        process_epub(file_path, collection, False, socketio)
+        process_epub(file_path, collection, socketio, False)
         logging.info("Successfully processed and inserted into MongoDB")
 
         # Optionally, create indexes after processing if they are specific to the processed data
