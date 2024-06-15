@@ -56,6 +56,27 @@ def lookup_book_summary(book_title):
     else:
         # Handle case where no summary is found
         return None
+    
+def check_summaries(file_path, collection, rewrite=False, socketio=None):
+    logging.info("Inside check_summaries, the file_path is %s", file_path)
+    book = epub.read_epub(file_path)
+    book_title = book.get_metadata('DC', 'title')[0][0]
+    logging.info("book_title is %s", book_title)
+
+    # Check if book summary exists
+    book_summary = collection.find_one({"book": book_title, "is_book_summary": True})
+
+    # Check if all chapter summaries exist
+    total_chapters = len(list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT)))
+    chapter_summaries = collection.find({"book": book_title, "is_book_summary": {"$ne": True}})
+    chapter_summaries_count = chapter_summaries.count()
+
+    if book_summary and chapter_summaries_count == total_chapters:
+        logging.info("All summaries are completed for the book: %s", book_title)
+        return True
+    else:
+        logging.info("Summaries are still pending for the book: %s", book_title)
+        return False
 
 
 def process_epub(file_path, collection, rewrite=False, socketio=None):
@@ -117,6 +138,10 @@ def process_epub(file_path, collection, rewrite=False, socketio=None):
     if socketio:
         progress = int(((chapter_count + 1) / (total_chapters + 1)) * 100)
         socketio.emit('progress_update', {'progress': progress})
+
+    socketio.emit('disconnect', {'book_title': book_title})
+    socketio.disconnect()
+
 
 
 

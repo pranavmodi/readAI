@@ -36,6 +36,7 @@
                 <div class="flex flex-col w-full">
                 <!-- Progress Bar -->
                 <div v-if="showProgressBar" class="progress-bar-container mb-4">
+                    <p class="progress-text">Summaries are being generated, please wait...</p>
                     <div class="progress-bar" :style="{ width: progress + '%' }"></div>
                 </div>
                 <!-- Close button and Toggle Switch in the same row -->
@@ -115,6 +116,22 @@
   },
     methods: {
 
+        async checkProcessingStatus(filename) {
+            try {
+                const response = await fetch(`http://localhost:8000/status-epub?filename=${filename}`);
+                if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const statusResult = await response.json();
+                return statusResult.status;
+
+            } catch (error) {
+                console.error("Error checking processing status:", error);
+                return 'error';
+            }
+        },
+
         startSummaryGeneration() {
             this.showProgressBar = true;
             const socket = io('http://localhost:8000');
@@ -130,11 +147,15 @@
 
             socket.on('disconnect', () => {
                 console.log('Disconnected from server');
+                this.showProgressBar = false;
+                this.getBookSummary();
+                this.getChapterSummaries();
             });
 
             // Trigger backend to start summary generation
-            this.getBookSummary();
-            this.getChapterSummaries();
+            // this.getBookSummary();
+            // this.getChapterSummaries();
+            console.log("end of startsummarygeneration!!! ")
         },
 
         sendMessage() {
@@ -312,8 +333,8 @@
     
     // call following functions after nexttick
     console.log("Reading area mounted", this.bookTitle);
-    this.getBookSummary();
-    this.getChapterSummaries();
+    // this.getBookSummary();
+    // this.getChapterSummaries();
   }
   };
 
@@ -321,6 +342,14 @@
   </script>
   
   <style>
+
+.progress-text {
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #555;  /* Adjust color as needed */
+    text-align: center;  /* Center align the text */
+}
+
 .progress-bar-container {
   width: 100%;
   background-color: #f3f3f3;

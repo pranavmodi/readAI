@@ -1,9 +1,11 @@
 <template>
   <div class="home-screen flex flex-col items-center justify-center">
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 my-4" style="width: fit-content; margin: auto;">
-      <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full" @click="selectBook(book)">
-        <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-auto h-96 rounded-lg shadow-md object-cover"/>
-        <h3 class="text-center mt-2">{{ book.name }}</h3>
+    <div class="grid-container overflow-auto">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 my-4" style="width: fit-content; margin: auto;">
+        <div v-for="book in books" :key="book.name" class="book-thumbnail flex flex-col items-center h-full" @click="selectBook(book)">
+          <img :src="book.thumbnail" :alt="`Cover of ${book.name}`" class="w-auto h-96 rounded-lg shadow-md object-cover"/>
+          <h3 class="text-center mt-2">{{ book.name }}</h3>
+        </div>
       </div>
     </div>
   </div>
@@ -80,9 +82,9 @@
 }
 
 .grid-container {
-  width: 100%; /* Full width */
-  display: flex; /* Flex container */
-  justify-content: center; /* Center horizontally */
+  padding-top: 20px; /* Adjust this value as needed */
+  padding-bottom: 20px; /* Adjust this value as needed */
+  max-height: 100vh; /* Ensure it does not exceed the viewport height */
 }
 
 .upload-button {

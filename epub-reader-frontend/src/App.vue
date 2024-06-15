@@ -117,8 +117,36 @@ export default {
       this.showChat = false;
   },
 
-    async openSelectedBook(book) {
+    // async openSelectedBook(book) {
       
+    //   this.chapterSummaryList = [];
+    //   this.currentBookSummary = "";
+
+    //   try {
+    //     const response = await fetch(`http://localhost:8000${book.epub}`);
+    //     if (!response.ok) {
+    //       throw new Error(`HTTP error! Status: ${response.status}`);
+    //     }
+
+    //     const epubBlob = await response.blob();
+    //     this.epubFile = new File([epubBlob], book.name, { type: 'application/epub+zip' });
+    //     await this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
+    //     // after nexttick do handleresize
+    //     // this.showHomeScreen = false;
+    //     // this.$nextTick(() => {
+    //     //   this.handleResize();
+    //     // });
+    //   } catch (error) {
+    //     console.error("Error fetching EPUB file:", error);
+    //   }
+
+    //   Add process book api call here
+      
+    //   // this.getBookSummary()
+    // },
+
+
+    async openSelectedBook(book) {
       this.chapterSummaryList = [];
       this.currentBookSummary = "";
 
@@ -130,18 +158,47 @@ export default {
 
         const epubBlob = await response.blob();
         this.epubFile = new File([epubBlob], book.name, { type: 'application/epub+zip' });
-        await this.loadBook(this.epubFile); // Assuming loadBook can handle a File object
-        // after nexttick do handleresize
-        // this.showHomeScreen = false;
-        // this.$nextTick(() => {
-        //   this.handleResize();
-        // });
+        
+        // First API call: Upload the EPUB file
+        const formData = new FormData();
+        formData.append('file', this.epubFile);
+
+        const uploadResponse = await fetch('http://localhost:8000/upload-epub', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload error! Status: ${uploadResponse.status}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        console.log('File upload successful mothafucka:', uploadResult);
+
+        // Second API call: Process the book
+        const processResponse = await fetch('http://localhost:8000/process-epub', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ filename: uploadResult.filename }),
+        });
+
+        if (!processResponse.ok) {
+          throw new Error(`Process error! Status: ${processResponse.status}`);
+        }
+
+        const processResult = await processResponse.json();
+        console.log('Book processing initiated:', processResult);
+
+        // Assuming loadBook can handle a File object
+        await this.loadBook(this.epubFile); 
+
       } catch (error) {
-        console.error("Error fetching EPUB file:", error);
+        console.error("Error handling EPUB file:", error);
       }
-      
-      // this.getBookSummary()
     },
+
 
     uploadBook(e) {
       console.log("fucking uploading book now")
@@ -188,14 +245,14 @@ export default {
     return null;
   },
 
-      constructBookSummary() {
-      // Construct the book summary from the chapter summaries
-      this.currentBookSummary = "";
-      for (let chapterSummary of this.chapterSummaryList) {
-        // {is_main_content: 'Yes', summary: "This chapter gives insights into the book 'Make So…s' with a mention of the Steve Jobs Archive logo.", title: 'Chapter: Make Something Wonderful: Steve Jobs in his own words'}
-        this.currentBookSummary += `<strong>${chapterSummary.summary.title}</strong>: ${chapterSummary.summary.summary}<br><br>`;
-      }
-    },
+    //   constructBookSummary() {
+    //   // Construct the book summary from the chapter summaries
+    //   this.currentBookSummary = "";
+    //   for (let chapterSummary of this.chapterSummaryList) {
+    //     // {is_main_content: 'Yes', summary: "This chapter gives insights into the book 'Make So…s' with a mention of the Steve Jobs Archive logo.", title: 'Chapter: Make Something Wonderful: Steve Jobs in his own words'}
+    //     this.currentBookSummary += `<strong>${chapterSummary.summary.title}</strong>: ${chapterSummary.summary.summary}<br><br>`;
+    //   }
+    // },
 
     generateChapterIdentifier(chapterName) {
       // Assuming bookTitle is set when the book is loaded
@@ -208,45 +265,45 @@ export default {
       }
     },
 
-    showChapterSummary() {
-      const chapterIdentifier = this.generateChapterIdentifier();
-      console.log(`Fetching summary for chapter: ${chapterIdentifier}`);
+    // showChapterSummary() {
+    //   const chapterIdentifier = this.generateChapterIdentifier();
+    //   console.log(`Fetching summary for chapter: ${chapterIdentifier}`);
 
-      // URL of your Flask endpoint
-      const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
+    //   // URL of your Flask endpoint
+    //   const url = `http://localhost:8000/chapter-summary/${encodeURIComponent(chapterIdentifier)}`;
 
-      // Make the HTTP GET request
-      fetch(url)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.status === "success") {
-            // Handle the retrieved summary
-            console.log("Chapter Summary:", data.chapter_summary);
-            this.currentChapterSummary = data.chapter_summary
-            // You might want to update some data property or state with this summary
-            // For example: this.currentChapterSummary = data.chapter_summary;
-          } else {
-            console.error("Error fetching summary:", data.message);
-          }
-        })
-        .catch(error => {
-          console.error("Error in fetching chapter summary:", error.message);
-        });
-    },
+    //   // Make the HTTP GET request
+    //   fetch(url)
+    //     .then(response => {
+    //       if (!response.ok) {
+    //         throw new Error(`HTTP error! Status: ${response.status}`);
+    //       }
+    //       return response.json();
+    //     })
+    //     .then(data => {
+    //       if (data.status === "success") {
+    //         // Handle the retrieved summary
+    //         console.log("Chapter Summary:", data.chapter_summary);
+    //         this.currentChapterSummary = data.chapter_summary
+    //         // You might want to update some data property or state with this summary
+    //         // For example: this.currentChapterSummary = data.chapter_summary;
+    //       } else {
+    //         console.error("Error fetching summary:", data.message);
+    //       }
+    //     })
+    //     .catch(error => {
+    //       console.error("Error in fetching chapter summary:", error.message);
+    //     });
+    // },
 
-    resizeBookForSidePanel() {
-    const sidePanelWidth = this.isSidePanelOpen ? 300 : 0; // Assuming 300px width for the side panel
-    this.bookAreaWidth = window.innerWidth - sidePanelWidth;
+  //   resizeBookForSidePanel() {
+  //   const sidePanelWidth = this.isSidePanelOpen ? 300 : 0; // Assuming 300px width for the side panel
+  //   this.bookAreaWidth = window.innerWidth - sidePanelWidth;
 
-    if (this.rendition) {
-      this.rendition.resize(this.bookAreaWidth, this.windowSize.height);
-    }
-  },
+  //   if (this.rendition) {
+  //     this.rendition.resize(this.bookAreaWidth, this.windowSize.height);
+  //   }
+  // },
 
   async uploadEpubFile() {
     console.log('going to upload book now');
@@ -272,7 +329,6 @@ export default {
     } else {
         console.error('No valid epub file to upload');
     }
-    console.log("the book title is ", this.bookTitle);
     this.showHomeScreen = false;
   },
 
@@ -349,6 +405,7 @@ export default {
           // console.log("before handle resize");
           // this.handleResize();
           // console.log("after handle resize");
+          console.log("book successfully loaded", this.bookTitle);
 
           resolve(); // Resolve the promise when everything is done
         }).catch(error => {
@@ -361,6 +418,7 @@ export default {
         reject(error); // Reject the promise on error
       });
     });
+    
     
   },
 

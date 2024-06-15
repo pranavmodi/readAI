@@ -18,6 +18,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 BOOKS_DIR = 'static/epubs'
 THUMBNAILS_DIR = 'static/thumbnails'
+processing_status = {}
+
 
 if not os.path.exists(BOOKS_DIR):
     os.makedirs(BOOKS_DIR)
@@ -86,9 +88,42 @@ def get_books():
 
     return jsonify(books)
 
+# @app.route('/upload-epub', methods=['POST'])
+# def upload_epub():
+#     logging.info("Inside upload_epub")
+#     if 'file' not in request.files:
+#         return 'No epub file part', 400
+
+#     file = request.files['file']
+
+#     if file.filename == '':
+#         return 'No selected file', 400
+
+#     if file:
+#         filename = secure_filename(file.filename)
+#         file_path = os.path.join(BOOKS_DIR, filename)
+#         file.save(file_path)
+
+#         try:
+#             cover_image = get_epub_cover(file_path)
+#             book_name = os.path.splitext(os.path.basename(file_path))[0]
+#             cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
+#             image = Image.open(cover_image)
+#             image.save(cover_image_path, 'JPEG')
+#         except Exception as e:
+#             logging.warning("No cover image found for book: %s", book_name)
+
+#         logging.info("Starting a new thread for processing the ePub file")
+#         # thread = threading.Thread(target=book_main, args=(file_path,))
+#         thread = threading.Thread(target=book_main, args=(file_path, socketio))
+#         thread.start()
+
+#         return jsonify({"message": "File upload initiated", "filename": filename})
+    
+
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
-    logging.info("Inside upload_epub")
+    logging.info("Inside new upload_epub")
     if 'file' not in request.files:
         return 'No epub file part', 400
 
@@ -102,21 +137,39 @@ def upload_epub():
         file_path = os.path.join(BOOKS_DIR, filename)
         file.save(file_path)
 
-        try:
-            cover_image = get_epub_cover(file_path)
-            book_name = os.path.splitext(os.path.basename(file_path))[0]
-            cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
-            image = Image.open(cover_image)
-            image.save(cover_image_path, 'JPEG')
-        except Exception as e:
-            logging.warning("No cover image found for book: %s", book_name)
+        return jsonify({"message": "File upload successful", "filename": filename})
+    
 
-        logging.info("Starting a new thread for processing the ePub file")
-        # thread = threading.Thread(target=book_main, args=(file_path,))
-        thread = threading.Thread(target=book_main, args=(file_path, socketio))
-        thread.start()
+@app.route('/process-epub', methods=['POST'])
+def process_epub():
+    logging.info("Inside process_epub")
+    data = request.get_json()
+    filename = data.get('filename')
 
-        return jsonify({"message": "File upload initiated", "filename": filename})
+    if not filename:
+        return 'No filename provided', 400
+
+    file_path = os.path.join(BOOKS_DIR, filename)
+
+    if not os.path.exists(file_path):
+        return 'File not found', 404
+
+    try:
+        cover_image = get_epub_cover(file_path)
+        book_name = os.path.splitext(os.path.basename(file_path))[0]
+        cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
+        image = Image.open(cover_image)
+        image.save(cover_image_path, 'JPEG')
+    except Exception as e:
+        logging.warning("No cover image found for book: %s", book_name)
+
+    logging.info("Starting a new thread for processing the ePub file")
+    thread = threading.Thread(target=book_main, args=(file_path, socketio))
+    thread.start()
+
+    return jsonify({"message": "Book processing initiated", "filename": filename})
+
+
 
 @app.route('/book-summary/<path:book_title>', methods=['GET'])
 def book_summary(book_title):
@@ -155,6 +208,21 @@ def get_summary(chapter_id):
             "status": "pending",
             "message": "Summary is pending for chapter ID: " + chapter_id
         })
+    
+
+@app.route('/status-epub', methods=['GET'])
+def status_epub():
+    filename = request.args.get('filename')
+
+    if not filename:
+        return 'No filename provided', 400
+
+    file_path = os.path.join(BOOKS_DIR, filename)
+
+    if file_path not in processing_status:
+        return 'File not found', 404
+
+    return jsonify({"status": processing_status[file_path]})
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8000, debug=True)
