@@ -53,12 +53,25 @@ def clean_book_name(name):
     return ' '.join(word.capitalize() for word in name.replace('_', ' ').replace('-', ' ').split())
 
 def get_epub_cover(epub_path):
-    with zipfile.ZipFile(epub_path) as z:
+    namespaces = {'opf': 'http://www.idpf.org/2007/opf', 'u': 'urn:oasis:names:tc:opendocument:xmlns:container'}
+    with zipfile.ZipFile(epub_path, 'r') as z:
         t = etree.fromstring(z.read("META-INF/container.xml"))
-        rootfile_path = t.xpath("/u:container/u:rootfiles/u:rootfile", namespaces=namespaces)[0].get("full-path")
+        rootfile_elements = t.xpath("/u:container/u:rootfiles/u:rootfile", namespaces=namespaces)
+        if not rootfile_elements:
+            return None
+        rootfile_path = rootfile_elements[0].get("full-path")
+
         t = etree.fromstring(z.read(rootfile_path))
-        cover_id = t.xpath("//opf:metadata/opf:meta[@name='cover']", namespaces=namespaces)[0].get("content")
-        cover_href = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']", namespaces=namespaces)[0].get("href")
+        cover_meta_elements = t.xpath("//opf:metadata/opf:meta[@name='cover']", namespaces=namespaces)
+        if not cover_meta_elements:
+            return None
+        cover_id = cover_meta_elements[0].get("content")
+
+        cover_item_elements = t.xpath("//opf:manifest/opf:item[@id='" + cover_id + "']", namespaces=namespaces)
+        if not cover_item_elements:
+            return None
+        cover_href = cover_item_elements[0].get("href")
+
         cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
         return z.open(cover_path)
 
@@ -88,38 +101,6 @@ def get_books():
         })
 
     return jsonify(books)
-
-# @app.route('/upload-epub', methods=['POST'])
-# def upload_epub():
-#     logging.info("Inside upload_epub")
-#     if 'file' not in request.files:
-#         return 'No epub file part', 400
-
-#     file = request.files['file']
-
-#     if file.filename == '':
-#         return 'No selected file', 400
-
-#     if file:
-#         filename = secure_filename(file.filename)
-#         file_path = os.path.join(BOOKS_DIR, filename)
-#         file.save(file_path)
-
-#         try:
-#             cover_image = get_epub_cover(file_path)
-#             book_name = os.path.splitext(os.path.basename(file_path))[0]
-#             cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
-#             image = Image.open(cover_image)
-#             image.save(cover_image_path, 'JPEG')
-#         except Exception as e:
-#             logging.warning("No cover image found for book: %s", book_name)
-
-#         logging.info("Starting a new thread for processing the ePub file")
-#         # thread = threading.Thread(target=book_main, args=(file_path,))
-#         thread = threading.Thread(target=book_main, args=(file_path, socketio))
-#         thread.start()
-
-#         return jsonify({"message": "File upload initiated", "filename": filename})
     
 
 @app.route('/upload-epub', methods=['POST'])
@@ -129,26 +110,27 @@ def upload_epub():
         return 'No epub file part', 400
 
     file = request.files['file']
-
     if file.filename == '':
         return 'No selected file', 400
 
-    if file:
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(BOOKS_DIR, filename)
-        file.save(file_path)
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(BOOKS_DIR, filename)
+    file.save(file_path)
 
-        try:
-            cover_image = get_epub_cover(file_path)
-            book_name = os.path.splitext(os.path.basename(file_path))[0]
-            cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
-            image = Image.open(cover_image)
-            image.save(cover_image_path, 'JPEG')
-            logging.info("Cover image saved for book: %s", book_name)
-        except Exception as e:
-            logging.warning("No cover image found for book: %s", book_name)
+    try:
+        cover_image = get_epub_cover(file_path)
+        if cover_image is None:
+            raise Exception("Cover image not found")
+        book_name = os.path.splitext(os.path.basename(file_path))[0]
+        cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
+        image = Image.open(cover_image)
+        image.save(cover_image_path, 'JPEG')
+        logging.info("Cover image saved for book: %s", book_name)
+    except Exception as e:
+        logging.warning("No cover image found or error in processing for book: %s. Error: %s", book_name, str(e))
 
-        return jsonify({"message": "File upload successful", "filename": filename})
+    return jsonify({"message": "File upload successful", "filename": filename})
+
 
     
 
