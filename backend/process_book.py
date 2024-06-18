@@ -140,7 +140,6 @@ def process_epub(file_path, collection, socketio, rewrite=False):
 
     logging.info("going to disconnect now")
     socketio.emit('disconnect', {'book_title': book_title})
-    socketio.disconnect()
 
 
 
