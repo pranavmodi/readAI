@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from process_book import book_main, lookup_summary, lookup_book_summary
+from readai import chat_response
 from PIL import Image
 from io import BytesIO
 import zipfile
@@ -131,7 +132,6 @@ def upload_epub():
 
     return jsonify({"message": "File upload successful", "filename": filename})
 
-
     
 
 @app.route('/process-epub', methods=['POST'])
@@ -198,19 +198,32 @@ def get_summary(chapter_id):
         })
     
 
-@app.route('/status-epub', methods=['GET'])
-def status_epub():
-    filename = request.args.get('filename')
+# API endpoint to chat with the book
+@app.route('/chat_with_book', methods=['POST'])
+def chat_with_book():
+    data = request.json
+    query = data.get('query')
 
-    if not filename:
-        return 'No filename provided', 400
+    if not query:
+        return jsonify({"error": "No query provided"}), 400
 
-    file_path = os.path.join(BOOKS_DIR, filename)
+    # relevant_sections = retrieve_relevant_sections(query, index)
+    # context = " ".join(relevant_sections)
 
-    if file_path not in processing_status:
-        return 'File not found', 404
+    # system_prompt = ("You are an AI assistant helping a user to chat with a book. "
+    #                  "Use the provided context to answer the user's query accurately and concisely.")
+    # completion = client.chat.completions.create(
+    #     model="gpt-3.5-turbo",
+    #     messages=[
+    #         {"role": "system", "content": system_prompt},
+    #         {"role": "user", "content": context},
+    #         {"role": "user", "content": query}
+    #     ]
+    # )
 
-    return jsonify({"status": processing_status[file_path]})
+    response = chat_response(query)
+
+    return jsonify({"response": response}), 200
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8000, debug=True)

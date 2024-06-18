@@ -179,36 +179,52 @@
 
 
 
-        sendMessage() {
-        if (!this.newMessage.trim()) return;  // Prevent sending empty messages
+        async sendMessage() {
+            if (!this.newMessage.trim()) return;  // Prevent sending empty messages
 
-        // Construct the user message
-        const userMessage = {
-            id: Date.now(),  // Unique ID for the message
-            text: this.newMessage,
-            is_user: true
-        };
-
-        // Push the user message to the messages array
-        this.messages.push(userMessage);
-
-        // Clear the input field
-        this.newMessage = '';
-        // Simulate API response
-        setTimeout(() => {
-            const aiResponse = {
-                id: Date.now(),
-                text: "This is a simulated response from the AI.",
-                is_user: false
+            // Construct the user message
+            const userMessage = {
+                id: Date.now(),  // Unique ID for the message
+                text: this.newMessage,
+                is_user: true
             };
-            this.messages.push(aiResponse);
-        }, 1000);
 
-        // Optional: Scroll to the bottom of the chat view
-            this.$nextTick(() => {
+            // Push the user message to the messages array
+            this.messages.push(userMessage);
+
+            // Clear the input field
+            this.newMessage = '';
+
+            // Make API call to chat_with_book endpoint
+            try {
+                const response = await axios.post('/chat_with_book', {
+                query: userMessage.text
+                });
+
+                const aiResponse = {
+                id: Date.now(),
+                text: response.data.response,
+                is_user: false
+                };
+
+                // Push the AI response to the messages array
+                this.messages.push(aiResponse);
+
+                // Optional: Scroll to the bottom of the chat view
+                this.$nextTick(() => {
                 const container = this.$el.querySelector(".chat-messages");
                 container.scrollTop = container.scrollHeight;
-            });
+                });
+            } catch (error) {
+                console.error("Error during chat_with_book API call:", error);
+                // Optionally, handle the error by showing an error message in the chat
+                const errorResponse = {
+                id: Date.now(),
+                text: "Error during chat_with_book API call. Please try again later.",
+                is_user: false
+                };
+                this.messages.push(errorResponse);
+            }
         },
 
         startDrag(event) {

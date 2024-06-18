@@ -8,17 +8,15 @@ import os
 import tiktoken
 
 
-# def create_client1():
-#     load_dotenv()  # Load environment variables from .env file
-#     openai_api_key = os.getenv('OPENAI_API_KEY1')  # Retrieve the OpenAI API key
-#     client = OpenAI(api_key=openai_api_key)  # Initialize OpenAI client
-#     return client
 
 def create_client():
     load_dotenv()  # Load environment variables from .env file
     openai_api_key = os.getenv('OPENAI_API_KEY1')  # Retrieve the OpenAI API key
     client = OpenAI(api_key=openai_api_key)  # Initialize OpenAI client
     return client
+
+def chat_response(query):
+    return 'hello, you wanna chat, cocksucker? '
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     """Returns the number of tokens in a text string."""
