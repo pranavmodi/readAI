@@ -7,8 +7,16 @@ import logging
 import json
 from pymongo.errors import ConnectionFailure
 from readai import summarize_book_chapter, summarize_summaries
-
-
+from bs4 import BeautifulSoup
+import numpy as np
+import faiss
+from transformers import AutoTokenizer, AutoModel
+import psutil
+import os
+import time
+import torch
+import gc
+import subprocess
 
 logger = logging.getLogger(__name__)
 logger.propagate = True
@@ -54,6 +62,29 @@ def lookup_book_summary(book_title):
     else:
         # Handle case where no summary is found
         return None
+    
+
+def extract_text_to_json(epub_path, json_path, chunk_size=20):
+    book = epub.read_epub(epub_path)
+    content = []
+    for item in book.get_items():
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            soup = BeautifulSoup(item.get_body_content(), 'html.parser')
+            paragraphs = soup.get_text().split('\n')
+            chunk = ''
+            for paragraph in paragraphs:
+                if len(chunk.split()) + len(paragraph.split()) <= chunk_size:
+                    chunk += ' ' + paragraph
+                else:
+                    content.append(chunk.strip())
+                    chunk = paragraph
+            if chunk:  # Add the last chunk
+                content.append(chunk.strip())
+
+    # Save to JSON
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(content, f, ensure_ascii=False, indent=4)
+
     
 def check_summaries(file_path, collection, rewrite=False, socketio=None):
     logging.info("Inside check_summaries, the file_path is %s", file_path)
@@ -167,24 +198,129 @@ def create_indexes(collection):
         else:
             logging.info(f"Index already exists: {index_spec['name']}")
 
-def book_main(file_path, socketio):
+def log_memory_usage(stage=""):
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    logging.info(f"{stage} - Memory usage: {memory_info.rss / 1024 ** 2:.2f} MB")
+
+text_chunks = [
+    "Hello hello",
+    "In the realm of the collective unconscious, Gandhi symbolizes the Self, a unifying principle striving towards individuation.",
+    "Hello there cocksucker"
+    # Add more text chunks for testing
+]
+
+# def create_embeddings(texts, model, tokenizer, batch_size=1):
+#     embeddings = []
+#     for i in range(0, len(texts), batch_size):
+#         batch_texts = texts[i:i + batch_size]
+#         logging.info(f"Processing text chunk {i + 1}/{len(texts)}: {batch_texts[0][:100]}...")  # Log the first 100 characters of the first text in batch
+#         start_time = time.time()
+#         try:
+#             inputs = tokenizer(batch_texts, return_tensors='pt', truncation=True, padding=True)
+#             logging.info(f"Tokenized text chunk {i + 1}/{len(texts)}: {inputs['input_ids'].shape}")
+            
+#             log_memory_usage(f"After tokenizing chunk {i + 1}")
+            
+#             logging.info("Before model forward pass")
+#             try:
+#                 outputs = model(**inputs)
+#                 logging.info("After model forward pass")
+#             except Exception as e:
+#                 logging.error(f"Error during model forward pass for text chunk {i + 1}: {e}")
+#                 continue
+            
+#             log_memory_usage(f"After model forward pass for chunk {i + 1}")
+
+#             embedding = outputs.last_hidden_state.mean(dim=1).detach().numpy()
+#             embeddings.extend(embedding)
+#             logging.info(f"Successfully processed text chunk {i + 1}/{len(texts)} in {time.time() - start_time:.2f} seconds")
+            
+#             log_memory_usage(f"After processing chunk {i + 1}")
+
+#             # Clear cache and garbage collect
+#             del inputs
+#             del outputs
+#             gc.collect()
+#             torch.cuda.empty_cache()
+
+#         except Exception as e:
+#             logging.error(f"Error processing text chunk {i + 1}: {e}")
+#             continue  # Skip the problematic chunk and proceed with the next one
+
+#     return np.vstack(embeddings) if embeddings else np.array([])
+
+def call_standalone_embedding_script(text_chunks, model_name, batch_size=1):
+    try:
+        text_chunks_json = json.dumps(text_chunks)
+        result = subprocess.run(
+            ['python', 'standalone_embedding.py', text_chunks_json, model_name, str(batch_size)],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        logging.info(result.stdout)
+        if result.stderr:
+            logging.error(result.stderr)
+        
+        embeddings = np.load('embeddings.npy')
+        return embeddings
+    except subprocess.CalledProcessError as e:
+        logging.error(f"An error occurred while calling the standalone script: {e}")
+        logging.error(e.stderr)
+        return None
+
+
+def book_main(file_path, socketio, json_path):
     logging.info('Processing book: %s', file_path)
     try:
         collection = connect_to_mongodb()
         create_indexes(collection)
+        extract_text_to_json(file_path, json_path, chunk_size=100)
+        log_memory_usage()  # Log memory usage
+
+        logging.info("Reaching till after log memory usage")
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            content = json.load(f)
+
+        model_name = "sentence-transformers/all-MiniLM-L6-v2"
+
+        print("the content is", content, type(content))
+
+
+        text_chunks = [
+            "Introduction Mahatma Gandhi, a figure revered and often misunderstood, represents an archetype that transcends mere historical significance.",
+            "In the realm of the collective unconscious, Gandhi symbolizes the Self, a unifying principle striving towards individuation.",
+            "Hello hello"
+            # Add more text chunks as needed
+        ]
+        
+        model_name = "sentence-transformers/all-MiniLM-L6-v2"
+        logging.info("Reaching till before call standalone script")
+
+        embeddings = call_standalone_embedding_script(content, model_name, batch_size=1)
+        logging.info("Reaching till after call standalone script")
+
+        if embeddings is not None:
+            logging.info(f"Embeddings shape: {embeddings.shape}")
+        else:
+            logging.error("Failed to create embeddings")
+
+        dimension = embeddings.shape[1]
+        index = faiss.IndexFlatL2(dimension)
+        index.add(embeddings)
+        logging.info(f"FAISS index created with {len(embeddings)} embeddings")
 
         process_epub(file_path, collection, socketio, False)
         logging.info("Successfully processed and inserted into MongoDB")
-
-        # Optionally, create indexes after processing if they are specific to the processed data
-        # create_indexes(collection)
-
-    except pymongo.errors.PyMongoError as e:
-        logging.error("MongoDB error: %s", e)
-        traceback.print_exc()  # Print the stacktrace
+    except MemoryError:
+        logging.error("MemoryError: The process ran out of memory")
+    except ImportError as e:
+        logging.error(f"ImportError: {str(e)}")
+    except ValueError as e:
+        logging.error(f"ValueError: {str(e)}")
     except Exception as e:
-        logging.error("An error occurred: %s", e)
-        traceback.print_exc()  # Print the stacktrace
-    finally:
-        # Close the MongoDB connection if open, or handle accordingly
-        pass
+        logging.error("An error occurred: %s", str(e))
+        logging.exception(e)  # Log stack trace for debugging

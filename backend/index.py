@@ -19,14 +19,16 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 BOOKS_DIR = 'static/epubs'
 THUMBNAILS_DIR = 'static/thumbnails'
-processing_status = {}
-
+JSON_DIR = 'static/jsons'
 
 if not os.path.exists(BOOKS_DIR):
     os.makedirs(BOOKS_DIR)
 
 if not os.path.exists(THUMBNAILS_DIR):
     os.makedirs(THUMBNAILS_DIR)
+
+if not os.path.exists(JSON_DIR):
+    os.makedirs(JSON_DIR)
 
 namespaces = {
     "calibre": "http://calibre.kovidgoyal.net/2009/metadata",
@@ -120,9 +122,9 @@ def upload_epub():
 
     try:
         cover_image = get_epub_cover(file_path)
+        book_name = os.path.splitext(os.path.basename(file_path))[0]
         if cover_image is None:
             raise Exception("Cover image not found")
-        book_name = os.path.splitext(os.path.basename(file_path))[0]
         cover_image_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
         image = Image.open(cover_image)
         image.save(cover_image_path, 'JPEG')
@@ -144,15 +146,19 @@ def process_epub():
         return 'No filename provided', 400
 
     file_path = os.path.join(BOOKS_DIR, filename)
-    logging.info("the books_dir is %s and the filename is %s", BOOKS_DIR, filename)
+    logging.info("The books_dir is %s and the filename is %s", BOOKS_DIR, filename)
     logging.info("The file path is: %s", file_path)
 
     if not os.path.exists(file_path):
         logging.info("The file not found")
         return 'File not found', 404
 
-    logging.info("Starting a new thread for processing the ePub file")
-    thread = threading.Thread(target=book_main, args=(file_path, socketio))
+    # Create the JSON file path
+    book_name = os.path.splitext(filename)[0]
+    json_path = os.path.join(JSON_DIR, book_name + '.json')
+
+    logging.info("Starting a new thread for processing the ePub file and json path is %s", json_path)
+    thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path))
     thread.start()
 
     return jsonify({"message": "Book processing initiated", "filename": filename})
