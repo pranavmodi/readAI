@@ -20,6 +20,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 BOOKS_DIR = 'static/epubs'
 THUMBNAILS_DIR = 'static/thumbnails'
 JSON_DIR = 'static/jsons'
+EMB_DIR = 'static/embeddings'
 
 if not os.path.exists(BOOKS_DIR):
     os.makedirs(BOOKS_DIR)
@@ -156,9 +157,10 @@ def process_epub():
     # Create the JSON file path
     book_name = os.path.splitext(filename)[0]
     json_path = os.path.join(JSON_DIR, book_name + '.json')
+    embedding_path = os.path.join(EMB_DIR, book_name + '.npy')
 
     logging.info("Starting a new thread for processing the ePub file and json path is %s", json_path)
-    thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path))
+    thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path, embedding_path))
     thread.start()
 
     return jsonify({"message": "Book processing initiated", "filename": filename})

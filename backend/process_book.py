@@ -148,13 +148,12 @@ def process_epub(file_path, collection, socketio, rewrite=False):
         # Emit progress update
         if socketio:
             progress = int((chapter_count / (total_chapters + 1)) * 100)
-            logging.info("the hello stupid chapters count is %s, the total chapters is %s", chapter_count, total_chapters + 1)
             socketio.emit('progress_update', {'progress': progress})
 
     # Now summarizing all the chapters to get a unified summary of the book as a whole
     existing_book_summary = lookup_book_summary(book_title)
     if existing_book_summary:
-        logging.info("Book summary already exists, skipping processing for book: %s", existing_book_summary)
+        logging.info("Book summary already exists, skipping processing for book")
     else:
         consolidated_summary = summarize_summaries(" ".join(chapter['chapter_summary']['summary'] for chapter in chapter_summaries if 'chapter_summary' in chapter and chapter['chapter_summary']['is_main_content']))
         document = {
@@ -167,9 +166,7 @@ def process_epub(file_path, collection, socketio, rewrite=False):
     if socketio:
         progress = int(((chapter_count + 1) / (total_chapters + 1)) * 100)
         socketio.emit('progress_update', {'progress': progress})
-        logging.info("coming here now")
 
-    logging.info("going to disconnect now")
     socketio.emit('disconnect', {'book_title': book_title})
 
 
@@ -185,8 +182,6 @@ def create_indexes(collection):
 
     # Retrieve current indexes on the collection
     existing_indexes = collection.list_indexes()
-    logging.info("Existing indexes: %s", existing_indexes)
-
     # Create a set of existing index names
     existing_index_names = {index['name'] for index in existing_indexes}
 
@@ -202,53 +197,6 @@ def log_memory_usage(stage=""):
     process = psutil.Process(os.getpid())
     memory_info = process.memory_info()
     logging.info(f"{stage} - Memory usage: {memory_info.rss / 1024 ** 2:.2f} MB")
-
-text_chunks = [
-    "Hello hello",
-    "In the realm of the collective unconscious, Gandhi symbolizes the Self, a unifying principle striving towards individuation.",
-    "Hello there cocksucker"
-    # Add more text chunks for testing
-]
-
-# def create_embeddings(texts, model, tokenizer, batch_size=1):
-#     embeddings = []
-#     for i in range(0, len(texts), batch_size):
-#         batch_texts = texts[i:i + batch_size]
-#         logging.info(f"Processing text chunk {i + 1}/{len(texts)}: {batch_texts[0][:100]}...")  # Log the first 100 characters of the first text in batch
-#         start_time = time.time()
-#         try:
-#             inputs = tokenizer(batch_texts, return_tensors='pt', truncation=True, padding=True)
-#             logging.info(f"Tokenized text chunk {i + 1}/{len(texts)}: {inputs['input_ids'].shape}")
-            
-#             log_memory_usage(f"After tokenizing chunk {i + 1}")
-            
-#             logging.info("Before model forward pass")
-#             try:
-#                 outputs = model(**inputs)
-#                 logging.info("After model forward pass")
-#             except Exception as e:
-#                 logging.error(f"Error during model forward pass for text chunk {i + 1}: {e}")
-#                 continue
-            
-#             log_memory_usage(f"After model forward pass for chunk {i + 1}")
-
-#             embedding = outputs.last_hidden_state.mean(dim=1).detach().numpy()
-#             embeddings.extend(embedding)
-#             logging.info(f"Successfully processed text chunk {i + 1}/{len(texts)} in {time.time() - start_time:.2f} seconds")
-            
-#             log_memory_usage(f"After processing chunk {i + 1}")
-
-#             # Clear cache and garbage collect
-#             del inputs
-#             del outputs
-#             gc.collect()
-#             torch.cuda.empty_cache()
-
-#         except Exception as e:
-#             logging.error(f"Error processing text chunk {i + 1}: {e}")
-#             continue  # Skip the problematic chunk and proceed with the next one
-
-#     return np.vstack(embeddings) if embeddings else np.array([])
 
 def call_standalone_embedding_script(text_chunks, model_name, batch_size=1):
     try:
@@ -272,55 +220,36 @@ def call_standalone_embedding_script(text_chunks, model_name, batch_size=1):
         return None
 
 
-def book_main(file_path, socketio, json_path):
+def book_main(file_path, socketio, json_path, embeddings_path):
     logging.info('Processing book: %s', file_path)
-    try:
-        collection = connect_to_mongodb()
-        create_indexes(collection)
+    collection = connect_to_mongodb()
+    create_indexes(collection)
+    process_epub(file_path, collection, socketio, False)
+    embeddings = None
+
+    if os.path.exists(embeddings_path):
+        logging.info(f"Embeddings file already exists at {embeddings_path}.")
+        try:
+            embeddings = np.load(embeddings_path)
+            logging.info(f"Embeddings file already exists at {embeddings_path}.")
+
+        except Exception as e:
+            logging.error(f"Error loading embeddings from {embeddings_path}: {e}")
+        
+
+    if embeddings is None:
         extract_text_to_json(file_path, json_path, chunk_size=100)
         log_memory_usage()  # Log memory usage
-
-        logging.info("Reaching till after log memory usage")
 
         with open(json_path, 'r', encoding='utf-8') as f:
             content = json.load(f)
 
         model_name = "sentence-transformers/all-MiniLM-L6-v2"
-
-        print("the content is", content, type(content))
-
-
-        text_chunks = [
-            "Introduction Mahatma Gandhi, a figure revered and often misunderstood, represents an archetype that transcends mere historical significance.",
-            "In the realm of the collective unconscious, Gandhi symbolizes the Self, a unifying principle striving towards individuation.",
-            "Hello hello"
-            # Add more text chunks as needed
-        ]
-        
-        model_name = "sentence-transformers/all-MiniLM-L6-v2"
-        logging.info("Reaching till before call standalone script")
-
         embeddings = call_standalone_embedding_script(content, model_name, batch_size=1)
-        logging.info("Reaching till after call standalone script")
+        np.save(embeddings_path, embeddings)
 
-        if embeddings is not None:
-            logging.info(f"Embeddings shape: {embeddings.shape}")
-        else:
-            logging.error("Failed to create embeddings")
-
-        dimension = embeddings.shape[1]
-        index = faiss.IndexFlatL2(dimension)
-        index.add(embeddings)
-        logging.info(f"FAISS index created with {len(embeddings)} embeddings")
-
-        process_epub(file_path, collection, socketio, False)
-        logging.info("Successfully processed and inserted into MongoDB")
-    except MemoryError:
-        logging.error("MemoryError: The process ran out of memory")
-    except ImportError as e:
-        logging.error(f"ImportError: {str(e)}")
-    except ValueError as e:
-        logging.error(f"ValueError: {str(e)}")
-    except Exception as e:
-        logging.error("An error occurred: %s", str(e))
-        logging.exception(e)  # Log stack trace for debugging
+    logging.info(f"Embeddings shape: {embeddings.shape}")
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(embeddings)
+    logging.info(f"FAISS index created with {len(embeddings)} embeddings")
