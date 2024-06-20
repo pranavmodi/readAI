@@ -182,6 +182,10 @@
         async sendMessage() {
             if (!this.newMessage.trim()) return;  // Prevent sending empty messages
 
+            // Change the file extension from .epub to .npy
+            const npy_path = this.filename.replace(/\.epub$/, '.npy');
+            const json_name = this.filename.replace(/\.epub$/, '.json');
+
             // Construct the user message
             const userMessage = {
                 id: Date.now(),  // Unique ID for the message
@@ -198,13 +202,15 @@
             // Make API call to chat_with_book endpoint
             try {
                 const response = await axios.post('/chat_with_book', {
-                query: userMessage.text
+                    query: userMessage.text,
+                    npy_path: npy_path,  // Use the new filename with .npy extension
+                    json_name: json_name
                 });
 
                 const aiResponse = {
-                id: Date.now(),
-                text: response.data.response,
-                is_user: false
+                    id: Date.now(),
+                    text: response.data.response,
+                    is_user: false
                 };
 
                 // Push the AI response to the messages array
@@ -212,20 +218,21 @@
 
                 // Optional: Scroll to the bottom of the chat view
                 this.$nextTick(() => {
-                const container = this.$el.querySelector(".chat-messages");
-                container.scrollTop = container.scrollHeight;
+                    const container = this.$el.querySelector(".chat-messages");
+                    container.scrollTop = container.scrollHeight;
                 });
             } catch (error) {
                 console.error("Error during chat_with_book API call:", error);
                 // Optionally, handle the error by showing an error message in the chat
                 const errorResponse = {
-                id: Date.now(),
-                text: "Error during chat_with_book API call. Please try again later.",
-                is_user: false
+                    id: Date.now(),
+                    text: "Error during chat_with_book API call. Please try again later.",
+                    is_user: false
                 };
                 this.messages.push(errorResponse);
             }
         },
+
 
         startDrag(event) {
             this.isDragging = true;
@@ -270,6 +277,7 @@
         
         getBookSummary() {
             const encodedBookTitle = encodeURIComponent(this.bookTitle);
+            console.log("the book title", this.bookTitle);
 
             axios.get(`/book-summary/${encodedBookTitle}`)
                 .then(response => {

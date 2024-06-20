@@ -6,6 +6,12 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import tiktoken
+import numpy as np
+import faiss
+import logging
+from transformers import AutoTokenizer, AutoModel
+import openai
+import subprocess
 
 
 
@@ -15,8 +21,138 @@ def create_client():
     client = OpenAI(api_key=openai_api_key)  # Initialize OpenAI client
     return client
 
-def chat_response(query):
-    return 'hello, you wanna chat, cocksucker? '
+
+
+# Initialize OpenAI API key
+
+def call_standalone_embedding_script(text_chunks, model_name, batch_size=1):
+    try:
+        text_chunks_json = json.dumps(text_chunks)
+        result = subprocess.run(
+            ['python', 'standalone_embedding.py', text_chunks_json, model_name, str(batch_size)],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        logging.info(result.stdout)
+        if result.stderr:
+            logging.error(result.stderr)
+        
+        embeddings = np.load('embeddings.npy')
+        return embeddings
+    except subprocess.CalledProcessError as e:
+        logging.error(f"An error occurred while calling the standalone script: {e}")
+        logging.error(e.stderr)
+        return None
+
+def load_embeddings(embedding_path):
+    try:
+        embeddings = np.load(embedding_path)
+        logging.info(f"Loaded embeddings from {embedding_path} with shape {embeddings.shape}.")
+        return embeddings
+    except Exception as e:
+        logging.error(f"Failed to load embeddings from {embedding_path}: {e}")
+        return None
+
+def create_faiss_index(embeddings):
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(embeddings)
+    logging.info(f"FAISS index created with {len(embeddings)} embeddings.")
+    return index
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+def search_faiss_index(index, query_embedding, top_k=5):
+    distances, indices = index.search(query_embedding, top_k)
+    return indices
+
+def embed_query(query, model_name="sentence-transformers/all-MiniLM-L6-v2"):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    
+    inputs = tokenizer(query, return_tensors='pt', truncation=True, padding=True)
+    outputs = model(**inputs)
+    query_embedding = outputs.last_hidden_state.mean(dim=1).detach().numpy()
+    
+    return query_embedding
+
+def generate_openai_response(context, user_query):
+    # prompt = f"""
+    # Based on the following context, answer the user's question:
+    # Context: {context}
+    # Question: {user_query}
+    # """
+    
+    # response = openai.Completion.create(
+    #     engine="davinci-codex", # Replace with the appropriate OpenAI model
+    #     prompt=prompt,
+    #     max_tokens=150
+    # )
+
+    client = create_client()
+    completion = client.chat.completions.create(
+      model="gpt-3.5-turbo",
+      messages=[
+        {"role": "system", "content": context},
+        {"role": "user", "content": user_query}
+      ]
+    )
+
+    return completion.choices[0].message.content
+    # return response.choices[0].text.strip()
+
+def chat_response(user_query, embedding_path, text_chunks, top_k=5):
+    # Step 1: Load embeddings
+    embeddings = load_embeddings(embedding_path)
+    if embeddings is None:
+        return "Failed to load embeddings. Please try again later."
+
+    # Step 2: Create FAISS index
+    index = create_faiss_index(embeddings)
+
+    # Step 3: Embed user query
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    query_embedding = call_standalone_embedding_script([user_query], model_name, batch_size=1)
+    logging.info(f"Query Embeddings shape: {query_embedding.shape}")
+
+    # query_embedding = embed_query(user_query)
+
+    # Step 4: Search FAISS index for relevant sections
+    logging.info("going to search index")
+    indices = search_faiss_index(index, query_embedding, top_k)
+
+    # Step 5: Retrieve relevant sections
+    relevant_sections = [text_chunks[idx] for idx in indices[0]]
+
+    [print(rs) for rs in relevant_sections]
+
+    # Step 6: Generate OpenAI response using the relevant sections
+    context = " ".join(relevant_sections)
+    response = generate_openai_response(context, user_query)
+    logging.info("going to return response")
+
+    return response
+
+# # Example usage
+# if __name__ == '__main__':
+#     logging.basicConfig(level=logging.INFO)
+    
+#     book_filename = "example_book.epub"
+#     embedding_path = f'{os.path.splitext(book_filename)[0]}_embeddings.npy'
+#     text_chunks = [
+#         "Introduction Mahatma Gandhi, a figure revered and often misunderstood, represents an archetype that transcends mere historical significance.",
+#         "In the realm of the collective unconscious, Gandhi symbolizes the Self, a unifying principle striving towards individuation.",
+#         "Hello hello"
+#         # Add more text chunks as needed
+#     ]
+    
+#     user_query = "What is the significance of Mahatma Gandhi's principle of nonviolence?"
+    
+#     response = chat_response(user_query, embedding_path, text_chunks, top_k=5)
+#     print(response)
+
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     """Returns the number of tokens in a text string."""

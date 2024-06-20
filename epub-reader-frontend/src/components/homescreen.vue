@@ -45,7 +45,6 @@
 
       onFileChange(event) {
       // Check if files are selected
-      console.log("mothafucka File selected");
       if (event.target.files && event.target.files.length > 0) {
         // Get the first file (since you're only interested in one file)
         // const file = event.target.files[0];

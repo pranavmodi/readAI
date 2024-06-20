@@ -11,7 +11,7 @@ import os
 import threading
 import logging
 from flask_socketio import SocketIO, emit
-import time
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -157,10 +157,10 @@ def process_epub():
     # Create the JSON file path
     book_name = os.path.splitext(filename)[0]
     json_path = os.path.join(JSON_DIR, book_name + '.json')
-    embedding_path = os.path.join(EMB_DIR, book_name + '.npy')
+    embeddings_path = os.path.join(EMB_DIR, book_name + '.npy')
 
     logging.info("Starting a new thread for processing the ePub file and json path is %s", json_path)
-    thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path, embedding_path))
+    thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path, embeddings_path))
     thread.start()
 
     return jsonify({"message": "Book processing initiated", "filename": filename})
@@ -211,6 +211,14 @@ def get_summary(chapter_id):
 def chat_with_book():
     data = request.json
     query = data.get('query')
+    embedding_name = data.get('npy_path')
+    embedding_path = os.path.join(EMB_DIR, embedding_name)
+    logging.info("the embedding file path is %s", embedding_path)
+    json_path = os.path.join(JSON_DIR, data.get('json_name'))
+    logging.info("the json file path is %s", json_path)
+
+    with open(json_path, 'r', encoding='utf-8') as f:
+        text_chunks = json.load(f)
 
     if not query:
         return jsonify({"error": "No query provided"}), 400
@@ -229,7 +237,7 @@ def chat_with_book():
     #     ]
     # )
 
-    response = chat_response(query)
+    response = chat_response(query, embedding_path, text_chunks)
 
     return jsonify({"response": response}), 200
 

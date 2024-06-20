@@ -1,4 +1,3 @@
-import traceback
 import ebooklib
 from ebooklib import epub
 from pymongo import MongoClient
@@ -6,16 +5,13 @@ import pymongo
 import logging
 import json
 from pymongo.errors import ConnectionFailure
-from readai import summarize_book_chapter, summarize_summaries
+from readai import summarize_book_chapter, summarize_summaries, call_standalone_embedding_script
 from bs4 import BeautifulSoup
 import numpy as np
 import faiss
 from transformers import AutoTokenizer, AutoModel
 import psutil
 import os
-import time
-import torch
-import gc
 import subprocess
 
 logger = logging.getLogger(__name__)
@@ -198,26 +194,7 @@ def log_memory_usage(stage=""):
     memory_info = process.memory_info()
     logging.info(f"{stage} - Memory usage: {memory_info.rss / 1024 ** 2:.2f} MB")
 
-def call_standalone_embedding_script(text_chunks, model_name, batch_size=1):
-    try:
-        text_chunks_json = json.dumps(text_chunks)
-        result = subprocess.run(
-            ['python', 'standalone_embedding.py', text_chunks_json, model_name, str(batch_size)],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        logging.info(result.stdout)
-        if result.stderr:
-            logging.error(result.stderr)
-        
-        embeddings = np.load('embeddings.npy')
-        return embeddings
-    except subprocess.CalledProcessError as e:
-        logging.error(f"An error occurred while calling the standalone script: {e}")
-        logging.error(e.stderr)
-        return None
+
 
 
 def book_main(file_path, socketio, json_path, embeddings_path):
@@ -249,7 +226,7 @@ def book_main(file_path, socketio, json_path, embeddings_path):
         np.save(embeddings_path, embeddings)
 
     logging.info(f"Embeddings shape: {embeddings.shape}")
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(embeddings)
-    logging.info(f"FAISS index created with {len(embeddings)} embeddings")
+    # dimension = embeddings.shape[1]
+    # index = faiss.IndexFlatL2(dimension)
+    # index.add(embeddings)
+    # logging.info(f"FAISS index created with {len(embeddings)} embeddings")

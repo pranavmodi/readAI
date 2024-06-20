@@ -9,6 +9,7 @@ import sys
 import json
 import os
 
+
 def log_memory_usage(stage=""):
     process = psutil.Process(os.getpid())
     memory_info = process.memory_info()
@@ -16,13 +17,17 @@ def log_memory_usage(stage=""):
     sys.stdout.flush()
 
 def create_embeddings(texts, model_name, batch_size=1):
+    print("printing the text ", texts)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
     
     embeddings = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i + batch_size]
-        sys.stdout.flush()
+        if i % 10 == 0:
+            logging.info(f"Embeddings generated for {i}")
+            sys.stdout.flush()
+
         start_time = time.time()
         try:
             inputs = tokenizer(batch_texts, return_tensors='pt', truncation=True, padding=True)
