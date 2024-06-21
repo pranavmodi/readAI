@@ -4,24 +4,26 @@
         <div id="book-area" class="bg-white shadow-md rounded p-4"></div>
   
         <!-- Chat Interface Overlay -->
+    <!-- Chat Interface Overlay -->
         <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300" style="pointer-events: none;">
             <div 
                 class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4 resize overflow-auto" 
                 :style="{ top: chatPosition.top, right: chatPosition.right, position: 'absolute', pointerEvents: 'auto' }"
                 @mousedown="startDrag">
                 <div class="chat-header flex justify-between items-center p-2 rounded-t-lg cursor-move">
-                    <h2 class="text-lg font-semibold">Chat with Book AI</h2>
-                    <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
+                <h2 class="text-lg font-semibold">Chat with Book AI</h2>
+                <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
                 </div>
                 <div class="chat-messages flex-1 overflow-y-auto p-2" style="max-height: calc(100% - 80px);">
-                    <!-- Messages will be displayed here -->
-                    <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
-                        {{ message.text }}
-                    </div>
+                <!-- Messages will be displayed here -->
+                <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
+                    {{ message.text }}
                 </div>
-                <div class="chat-input w-full p-2">
-                    <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
-                    <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
+                </div>
+                <div class="chat-input w-full p-2 flex items-center">
+                <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
+                <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
+                <div v-if="isLoading" class="spinner"></div> <!-- Loading spinner -->
                 </div>
             </div>
         </div>
@@ -105,7 +107,8 @@ export default {
             chatStartTop: 0,
             chatStartRight: 0,
             showProgressBar: false,
-            progress: 0
+            progress: 0,
+            isLoading: false
         };
     },
     methods: {
@@ -172,6 +175,8 @@ export default {
         async sendMessage() {
             if (!this.newMessage.trim()) return;  // Prevent sending empty messages
 
+            this.isLoading = true; // Show the loading spinner
+
             // Change the file extension from .epub to .npy
             const npy_path = this.filename.replace(/\.epub$/, '.npy');
             const json_name = this.filename.replace(/\.epub$/, '.json');
@@ -192,15 +197,15 @@ export default {
             // Make API call to chat_with_book endpoint
             try {
                 const response = await axios.post('/chat_with_book', {
-                    query: userMessage.text,
-                    npy_path: npy_path,  // Use the new filename with .npy extension
-                    json_name: json_name
+                query: userMessage.text,
+                npy_path: npy_path,  // Use the new filename with .npy extension
+                json_name: json_name
                 });
 
                 const aiResponse = {
-                    id: Date.now(),
-                    text: response.data.response,
-                    is_user: false
+                id: Date.now(),
+                text: response.data.response,
+                is_user: false
                 };
 
                 // Push the AI response to the messages array
@@ -208,18 +213,20 @@ export default {
 
                 // Optional: Scroll to the bottom of the chat view
                 this.$nextTick(() => {
-                    const container = this.$el.querySelector(".chat-messages");
-                    container.scrollTop = container.scrollHeight;
+                const container = this.$el.querySelector(".chat-messages");
+                container.scrollTop = container.scrollHeight;
                 });
             } catch (error) {
                 console.error("Error during chat_with_book API call:", error);
                 // Optionally, handle the error by showing an error message in the chat
                 const errorResponse = {
-                    id: Date.now(),
-                    text: "Error during chat_with_book API call. Please try again later.",
-                    is_user: false
+                id: Date.now(),
+                text: "Error during chat_with_book API call. Please try again later.",
+                is_user: false
                 };
                 this.messages.push(errorResponse);
+            } finally {
+                this.isLoading = false; // Hide the loading spinner
             }
         },
 
@@ -491,5 +498,20 @@ export default {
     font-size: 16px; /* Comfortable reading font size */
     line-height: 1.6; /* Line height for better readability */
     color: #555; /* Slightly lighter color for the content */
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #22a6b3;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

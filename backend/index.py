@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from process_book import book_main, lookup_summary, lookup_book_summary
-from readai import chat_response
+from readai import chat_response, create_book_index
 from PIL import Image
 from io import BytesIO
 import zipfile
@@ -31,6 +31,20 @@ if not os.path.exists(THUMBNAILS_DIR):
 if not os.path.exists(JSON_DIR):
     os.makedirs(JSON_DIR)
 
+class BookChat:
+    def __init__(self):
+        self.index = None
+
+    def reset_index(self):
+        self.index = None
+
+    def get_index(self, embedding_path):
+        if self.index is None:
+            self.index = create_book_index(embedding_path)
+        return self.index
+
+book_chat = BookChat()
+
 namespaces = {
     "calibre": "http://calibre.kovidgoyal.net/2009/metadata",
     "dc": "http://purl.org/dc/elements/1.1/",
@@ -53,7 +67,6 @@ def hello():
     return '<p>Hello, new World!</p>'
 
 def clean_book_name(name):
-    """Converts file-based names to more readable titles by replacing hyphens and underscores with spaces and capitalizing each word."""
     return ' '.join(word.capitalize() for word in name.replace('_', ' ').replace('-', ' ').split())
 
 def get_epub_cover(epub_path):
@@ -81,31 +94,27 @@ def get_epub_cover(epub_path):
 
 @app.route('/get-books')
 def get_books():
-    # List .epub files in the books directory
     book_files = [f for f in os.listdir(BOOKS_DIR) if f.endswith('.epub')]
 
-    # Prepare the list of books with their epub paths and thumbnail URLs
     books = []
     for book_file in book_files:
         book_name = os.path.splitext(book_file)[0]
         epub_path = os.path.join(BOOKS_DIR, book_file)
         thumbnail_path = os.path.join(THUMBNAILS_DIR, book_name + '.jpg')
 
-        # Check if the thumbnail file exists
         if os.path.exists(thumbnail_path):
             thumbnail_url = url_for('static', filename=os.path.join('thumbnails', book_name + '.jpg'))
         else:
-            thumbnail_url = None  # or a URL to a default placeholder image
+            thumbnail_url = None
 
         books.append({
             "name": clean_book_name(book_name),
-            "filename":book_file,
+            "filename": book_file,
             "epub": url_for('static', filename=os.path.join('epubs', book_file)),
             "thumbnail": thumbnail_url
         })
 
     return jsonify(books)
-    
 
 @app.route('/upload-epub', methods=['POST'])
 def upload_epub():
@@ -135,8 +144,6 @@ def upload_epub():
 
     return jsonify({"message": "File upload successful", "filename": filename})
 
-    
-
 @app.route('/process-epub', methods=['POST'])
 def process_epub():
     logging.info("Inside process_epub")
@@ -154,7 +161,6 @@ def process_epub():
         logging.info("The file not found")
         return 'File not found', 404
 
-    # Create the JSON file path
     book_name = os.path.splitext(filename)[0]
     json_path = os.path.join(JSON_DIR, book_name + '.json')
     embeddings_path = os.path.join(EMB_DIR, book_name + '.npy')
@@ -163,25 +169,22 @@ def process_epub():
     thread = threading.Thread(target=book_main, args=(file_path, socketio, json_path, embeddings_path))
     thread.start()
 
+    book_chat.reset_index()
+
     return jsonify({"message": "Book processing initiated", "filename": filename})
-
-
 
 @app.route('/book-summary/<path:book_title>', methods=['GET'])
 def book_summary(book_title):
-    # Query the database for the summary
     logging.info("Inside book_summary, the requested book_title is %s", book_title)
     summary_document = lookup_book_summary(book_title)
     logging.info("summary_document is %s", summary_document)
 
     if summary_document:
-        # Return the summary if found
         return jsonify({
             "status": "success",
             "book_summary": summary_document
         })
     else:
-        # Handle case where no summary is found
         return jsonify({
             "status": "error",
             "message": "Summary not found for book: " + book_title
@@ -189,24 +192,19 @@ def book_summary(book_title):
 
 @app.route('/chapter-summary/<path:chapter_id>', methods=['GET'])
 def get_summary(chapter_id):
-    # Query the database for the summary
     summary_document = lookup_summary(chapter_id)
 
     if summary_document:
-        # Return the summary if found
         return jsonify({
             "status": "success",
             "chapter_summary": summary_document
         })
     else:
-        # Handle case where summary is pending
         return jsonify({
             "status": "pending",
             "message": "Summary is pending for chapter ID: " + chapter_id
         })
-    
 
-# API endpoint to chat with the book
 @app.route('/chat_with_book', methods=['POST'])
 def chat_with_book():
     data = request.json
@@ -223,21 +221,8 @@ def chat_with_book():
     if not query:
         return jsonify({"error": "No query provided"}), 400
 
-    # relevant_sections = retrieve_relevant_sections(query, index)
-    # context = " ".join(relevant_sections)
-
-    # system_prompt = ("You are an AI assistant helping a user to chat with a book. "
-    #                  "Use the provided context to answer the user's query accurately and concisely.")
-    # completion = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[
-    #         {"role": "system", "content": system_prompt},
-    #         {"role": "user", "content": context},
-    #         {"role": "user", "content": query}
-    #     ]
-    # )
-
-    response = chat_response(query, embedding_path, text_chunks)
+    index = book_chat.get_index(embedding_path)
+    response = chat_response(query, index, text_chunks, top_k=10)
 
     return jsonify({"response": response}), 200
 

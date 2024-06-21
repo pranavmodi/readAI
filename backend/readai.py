@@ -10,7 +10,6 @@ import numpy as np
 import faiss
 import logging
 from transformers import AutoTokenizer, AutoModel
-import openai
 import subprocess
 
 
@@ -54,12 +53,22 @@ def load_embeddings(embedding_path):
     except Exception as e:
         logging.error(f"Failed to load embeddings from {embedding_path}: {e}")
         return None
+    
 
 def create_faiss_index(embeddings):
     dimension = embeddings.shape[1]
     index = faiss.IndexFlatL2(dimension)
     index.add(embeddings)
     logging.info(f"FAISS index created with {len(embeddings)} embeddings.")
+    logging.info("Does the index get created every time????????")
+    return index
+
+def create_book_index(embedding_path):
+    embeddings = load_embeddings(embedding_path)
+    if embeddings is None:
+        return "Failed to load embeddings. Please try again later."
+
+    index = create_faiss_index(embeddings)
     return index
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -103,16 +112,7 @@ def generate_openai_response(context, user_query):
     return completion.choices[0].message.content
     # return response.choices[0].text.strip()
 
-def chat_response(user_query, embedding_path, text_chunks, top_k=5):
-    # Step 1: Load embeddings
-    embeddings = load_embeddings(embedding_path)
-    if embeddings is None:
-        return "Failed to load embeddings. Please try again later."
-
-    # Step 2: Create FAISS index
-    index = create_faiss_index(embeddings)
-
-    # Step 3: Embed user query
+def chat_response(user_query, index, text_chunks, top_k=10):
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     query_embedding = call_standalone_embedding_script([user_query], model_name, batch_size=1)
     logging.info(f"Query Embeddings shape: {query_embedding.shape}")
