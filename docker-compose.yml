@@ -10,7 +10,7 @@ services:
       - 8080:8080
     environment:
       - NODE_ENV=development
-
+    command: ["npm", "run", "serve"]
 
   backend:
     build: ./backend
@@ -21,6 +21,7 @@ services:
       - ./backend:/app
     environment:
       - OPENAI_API_KEY1
+    command: ["python", "index.py"]
     depends_on:
       - database
 
