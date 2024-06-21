@@ -1,32 +1,27 @@
-
 <template>
     <div class="reading-area flex flex-col items-center justify-center">
-
         <!-- if showsummary is not true show book-area -->
-        <div id="book-area" class="bg-white shadow-md rounded p-4">
-        </div>
+        <div id="book-area" class="bg-white shadow-md rounded p-4"></div>
   
         <!-- Chat Interface Overlay -->
         <div v-if="showChat" class="chat-overlay bg-black bg-opacity-50 fixed inset-0 flex justify-end items-start transition-opacity ease-out duration-300" style="pointer-events: none;">
             <div 
-                class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4" 
+                class="chat-container bg-white p-4 rounded-lg shadow-xl w-full sm:w-1/3 md:w-1/4 h-3/4 mt-12 mr-4 resize overflow-auto" 
                 :style="{ top: chatPosition.top, right: chatPosition.right, position: 'absolute', pointerEvents: 'auto' }"
-                @mousedown="startDrag"
-                @mouseup="stopDrag"
-                @mousemove="drag">
+                @mousedown="startDrag">
                 <div class="chat-header flex justify-between items-center p-2 rounded-t-lg cursor-move">
-                <h2 class="text-lg font-semibold">Chat with Book AI</h2>
-                <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
+                    <h2 class="text-lg font-semibold">Chat with Book AI</h2>
+                    <button @click="closeChat" class="text-xl">&#10005;</button> <!-- Close button -->
                 </div>
-                <div class="chat-messages flex-1 overflow-y-auto p-2">
-                <!-- Messages will be displayed here -->
-                <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
-                    {{ message.text }}
-                </div>
+                <div class="chat-messages flex-1 overflow-y-auto p-2" style="max-height: calc(100% - 80px);">
+                    <!-- Messages will be displayed here -->
+                    <div v-for="message in messages" :key="message.id" :class="{'self-end bg-blue-300': message.is_user, 'self-start bg-gray-300': !message.is_user}" class="chat-message p-2 rounded my-1 max-w-3/4">
+                        {{ message.text }}
+                    </div>
                 </div>
                 <div class="chat-input w-full p-2">
-                <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
-                <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
+                    <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Type a message..." class="w-full p-2 rounded border-2 border-gray-300">
+                    <button @click="sendMessage" class="p-2 bg-blue-500 text-white rounded">Send</button>
                 </div>
             </div>
         </div>
@@ -34,43 +29,43 @@
         <div v-if="showBookSummary" class="overlay bg-black bg-opacity-100 fixed inset-0 flex justify-center items-center transition-opacity ease-out duration-300">
             <div class="overlay-content bg-white p-6 rounded-lg shadow-xl w-full sm:w-3/4 md:w-1/2">
                 <div class="flex flex-col w-full">
-                <!-- Progress Bar -->
-                <div v-if="showProgressBar" class="progress-bar-container mb-4">
-                    <p class="progress-text">Summaries are being generated, please wait...</p>
-                    <div class="progress-bar" :style="{ width: progress + '%' }"></div>
-                </div>
-                <!-- Close button and Toggle Switch in the same row -->
-                <div class="flex items-center mb-4">
-                    <!-- Close button with left arrow -->
-                    <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
-                    &#8592; <!-- This is a left arrow symbol -->
-                    </button>
-
-                    <!-- Styled Toggle Switch -->
-                    <div class="toggle-switch">
-                    <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
-                    <label for="bookSummary">Book Summary</label>
-
-                    <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
-                    <label for="chapterSummary">Chapter Summaries</label>
+                    <!-- Progress Bar -->
+                    <div v-if="showProgressBar" class="progress-bar-container mb-4">
+                        <p class="progress-text">Summaries are being generated, please wait...</p>
+                        <div class="progress-bar" :style="{ width: progress + '%' }"></div>
                     </div>
-                </div>
+                    <!-- Close button and Toggle Switch in the same row -->
+                    <div class="flex items-center mb-4">
+                        <!-- Close button with left arrow -->
+                        <button @click="closeSummary" class="close-btn mr-4 text-white font-semibold py-2 px-4 rounded transition duration-300 ease-in-out">
+                        &#8592; <!-- This is a left arrow symbol -->
+                        </button>
 
-                <!-- Book Summary -->
-                <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
-                    <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
-                    <div class="book-summary-content">
-                    <p>{{ this.bookSummary }}</p>
-                    </div>
-                </div>
+                        <!-- Styled Toggle Switch -->
+                        <div class="toggle-switch">
+                            <input type="radio" id="bookSummary" name="summaryType" value="book" v-model="selectedSummaryType">
+                            <label for="bookSummary">Book Summary</label>
 
-                <!-- Chapter Summaries -->
-                <div v-else-if="selectedSummaryType === 'chapter'">
-                    <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
-                    <h3>{{ summary.title }}</h3>
-                    <p>{{ summary.content }}</p>
+                            <input type="radio" id="chapterSummary" name="summaryType" value="chapter" v-model="selectedSummaryType">
+                            <label for="chapterSummary">Chapter Summaries</label>
+                        </div>
                     </div>
-                </div>
+
+                    <!-- Book Summary -->
+                    <div v-if="selectedSummaryType === 'book'" class="book-summary-container">
+                        <h2 class="book-summary-title">Book Summary for {{ this.bookTitle }}</h2>
+                        <div class="book-summary-content">
+                            <p>{{ this.bookSummary }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Chapter Summaries -->
+                    <div v-else-if="selectedSummaryType === 'chapter'">
+                        <div v-for="summary in chapterSummaries" :key="summary.title" class="chapter-summary">
+                            <h3>{{ summary.title }}</h3>
+                            <p>{{ summary.content }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,16 +75,14 @@
             <!-- Buttons for navigation, font size adjustment, etc. -->
         </div>
     </div>
-  </template>
+</template>
   
+<script>
+import { io } from 'socket.io-client';
+import axios from 'axios';
+axios.defaults.baseURL = 'http://localhost:8000/';
 
-  
-  <script>
-  import { io } from 'socket.io-client';
-  import axios from 'axios';
-  axios.defaults.baseURL = 'http://localhost:8000/';
-
-  export default {
+export default {
     props: {
         book: Object,
         showBookSummary: Boolean,
@@ -99,28 +92,28 @@
     },
 
     data() {
-    return {
-        selectedSummaryType: "book",
-        bookSummary: null,
-        chapterSummaries: null,
-        messages: [],
-        newMessage: '',
-        isDragging: false,
-        dragStartX: 0,
-        dragStartY: 0,
-        chatPosition: { top: '12rem', right: '1rem' },
-        chatStartTop: 0,
-        chatStartRight: 0,
-        showProgressBar: false,
-        progress: 0
-    };
-  },
+        return {
+            selectedSummaryType: "book",
+            bookSummary: null,
+            chapterSummaries: null,
+            messages: [],
+            newMessage: '',
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            chatPosition: { top: '12rem', right: '1rem' },
+            chatStartTop: 0,
+            chatStartRight: 0,
+            showProgressBar: false,
+            progress: 0
+        };
+    },
     methods: {
         async checkProcessingStatus(filename) {
             try {
                 const response = await fetch(`http://localhost:8000/status-epub?filename=${filename}`);
                 if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
                 const statusResult = await response.json();
@@ -176,9 +169,6 @@
             console.log("End of checkSummaryGeneration!!! ");
         },
 
-
-
-
         async sendMessage() {
             if (!this.newMessage.trim()) return;  // Prevent sending empty messages
 
@@ -233,7 +223,6 @@
             }
         },
 
-
         startDrag(event) {
             this.isDragging = true;
             this.dragStartX = event.clientX;
@@ -246,15 +235,17 @@
 
         stopDrag() {
             this.isDragging = false;
+            document.removeEventListener('mousemove', this.drag);
+            document.removeEventListener('mouseup', this.stopDrag);
         },
 
         drag(event) {
-        if (this.isDragging) {
-            const deltaX = event.clientX - this.dragStartX;
-            const deltaY = event.clientY - this.dragStartY;
-            // Convert the start position and delta into pixels and adjust accordingly
-            this.chatPosition.right = `${this.chatStartRight - deltaX}px`;
-            this.chatPosition.top = `${this.chatStartTop + deltaY}px`;
+            if (this.isDragging) {
+                const deltaX = event.clientX - this.dragStartX;
+                const deltaY = event.clientY - this.dragStartY;
+                // Convert the start position and delta into pixels and adjust accordingly
+                this.chatPosition.right = `${this.chatStartRight - deltaX}px`;
+                this.chatPosition.top = `${this.chatStartTop + deltaY}px`;
             }
         },
 
@@ -267,105 +258,73 @@
             this.$emit("handleresize");        
         },
 
-        // onShowBookSummaryChanged(newValue) {
-        //     if (newValue) {
-        //         console.log("showsummary turned true, ", this.bookTitle);
-        //         this.getBookSummary();
-        //         this.getChapterSummaries();
-        //     }
-        // },
-        
         getBookSummary() {
             const encodedBookTitle = encodeURIComponent(this.bookTitle);
             console.log("the book title", this.bookTitle);
 
             axios.get(`/book-summary/${encodedBookTitle}`)
                 .then(response => {
-                    // this.bookSummary = response.data.book_summary;
-                    // console.log("the summary from response is", response.data.book_summary)
                     this.bookSummary = response.data.book_summary;
                 })
                 .catch(error => {
                     console.error("Error fetching book summary:", error);
-                    // Handle the error. For example, you might want to show an error message to the user.
                 });
-
-            // set the first element of currentSummaries to currentBookSummary
         },
 
         generateChapterIdentifier(chapterName) {
-          // Assuming bookTitle is set when the book is loaded
-          // check if chapter name is passed
-          if (!chapterName) {
-            return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
-          }
-          else {
-            return `${this.bookTitle}_Chapter_${chapterName}`;
-          }
+            if (!chapterName) {
+                return `${this.bookTitle}_Chapter_${this.currentChapterURI}`;
+            } else {
+                return `${this.bookTitle}_Chapter_${chapterName}`;
+            }
         },
 
         getChapterSummaries() {
-        if (!this.book) {
-            console.error("Book not loaded");
-            return;
-        }
-        // if (this.fileUploaded === false) {
-        //   console.log('file not uploaded at all')
-        //     this.uploadEpubFile();
-        // }
-        let chapters = this.book.spine.spineItems;
-        let summaryPromises = chapters.map(chapter => {
-            let chapterId = this.generateChapterIdentifier(chapter.href);
-            
-            return axios.get(`/chapter-summary/${encodeURIComponent(chapterId)}`)
-                .then(response => {
-                    if (response.data.status === 'success') {
-                        // return {
-                        //     title: chapter.href,
-                        //     content: response.data.chapter_summary.summary
-                        // };
-                        return {
-                            title: response.data.chapter_summary.title,
-                            content: response.data.chapter_summary.summary
-                        };
-                    } else {
-                        console.log('response error response.data.status', response.data.status)
+            if (!this.book) {
+                console.error("Book not loaded");
+                return;
+            }
+            let chapters = this.book.spine.spineItems;
+            let summaryPromises = chapters.map(chapter => {
+                let chapterId = this.generateChapterIdentifier(chapter.href);
+                
+                return axios.get(`/chapter-summary/${encodeURIComponent(chapterId)}`)
+                    .then(response => {
+                        if (response.data.status === 'success') {
+                            return {
+                                title: response.data.chapter_summary.title,
+                                content: response.data.chapter_summary.summary
+                            };
+                        } else {
+                            return {
+                                title: "Chapter Summary for " + chapter.href,
+                                content: "Summary is pending for this chapter."
+                            };
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching summary for chapter:", chapter.href, error);
                         return {
                             title: "Chapter Summary for " + chapter.href,
-                            content: "Summary is pending for this chapter."
+                            content: "An error occurred while fetching the chapter summary."
                         };
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching summary for chapter:", chapter.href, error);
-                    return {
-                        title: "Chapter Summary for " + chapter.href,
-                        content: "An error occurred while fetching the chapter summary."
-                    };
-                });
-        });
+                    });
+            });
 
-        Promise.all(summaryPromises).then(summaries => {
-            this.chapterSummaries = summaries;
-        });
+            Promise.all(summaryPromises).then(summaries => {
+                this.chapterSummaries = summaries;
+            });
+        },
     },
-  
-  },
+
     watch: {
         showBookSummary: function (newValue) {
-            console.log("Show book summary changed to:", newValue);
-            // this.onShowBookSummaryChanged(newValue);
-            if (newValue){
+            if (newValue) {
                 this.checkSummaryGeneration();
-
-
             }
-            
         },
         selectedSummaryType: function (newValue) {
-            console.log("Selected summary type changed for book:", this.bookTitle);
             if (newValue === "book") {
-                console.log("Setting current summaries to book summary");
                 this.currentSummaries = this.bookSummary;
             } else {
                 this.currentSummaries = this.chapterSummaries;
@@ -373,42 +332,45 @@
         }
     },
 
-  
+    mounted() {
+        console.log("Reading area mounted", this.bookTitle);
+    }
+};
+</script>
 
-
-  mounted() {
-    
-    // call following functions after nexttick
-    console.log("Reading area mounted", this.bookTitle);
-    // this.getBookSummary();
-    // this.getChapterSummaries();
-  }
-  };
-
-
-  </script>
-  
-  <style>
-
-.progress-text {
-    margin-bottom: 10px;
-    font-size: 16px;
-    color: #555;  /* Adjust color as needed */
-    text-align: center;  /* Center align the text */
+<style scoped>
+.chat-container {
+    resize: both; /* Makes the container resizable */
+    overflow: auto; /* Adds a scrollbar if content overflows */
+    position: absolute;
 }
 
-.progress-bar-container {
-  width: 100%;
-  background-color: #f3f3f3;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 20px;
+.chat-header {
+    background-color: #f34c4c; /* Lighter background for the header */
+    cursor: move; /* Indicates draggable area */
 }
 
-.progress-bar {
-  height: 20px;
-  background-color: #4caf50;
-  transition: width 0.3s ease;
+.chat-messages {
+    max-height: calc(100% - 100px); /* Adjust this value based on header and input heights */
+    overflow-y: auto; /* Adds a vertical scrollbar if content overflows */
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background-color: darkgrey;
+    border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.chat-input {
+    margin-right: 8px; /* Space between the input field and the send button */
+    flex-grow: 1; /* Allows the input field to fill the space */
 }
 
 .close-btn {
@@ -455,12 +417,10 @@
     transform: scale(1.05); /* Slightly enlarges the selected button */
 }
 
-/* Hover effect */
 .toggle-switch label:hover {
     background-color: #ddd; /* Light grey background on hover */
 }
 
-/* Overlay content styling */
 .overlay-content {
     background-color: #ffffff; /* Ensures the background is white */
     border-radius: 15px; /* Rounded corners for the overlay */
@@ -532,38 +492,4 @@
     line-height: 1.6; /* Line height for better readability */
     color: #555; /* Slightly lighter color for the content */
 }
-
-.chat-overlay {
-    z-index: 1000; /* Ensures the overlay is above all other content */
-    align-items: flex-start; /* Aligns the chat container to the top */
-}
-
-.chat-container {
-    margin-top: 50px; /* Adds space from the top of the viewport */
-    height: calc(100vh - 100px); /* Adjusts height based on the viewport */
-    cursor: move; /* Indicates draggable area */
-    top: 12rem; 
-    right: 1rem;
-}
-
-.chat-header {
-    background-color: #f34c4c; /* Lighter background for the header */
-    cursor: move; /* Indicates draggable area */
-}
-
-.chat-messages {
-    background-color: #fff; /* White background for better readability */
-    margin-bottom: 10px; /* Space before the input section */
-}
-
-.chat-message {
-    word-wrap: break-word; /* Ensures messages do not overflow */
-}
-
-.chat-input input {
-    margin-right: 8px; /* Space between the input field and the send button */
-    flex-grow: 1; /* Allows the input field to fill the space */
-}
 </style>
-
-  
