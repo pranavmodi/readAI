@@ -12,7 +12,6 @@ import faiss
 from transformers import AutoTokenizer, AutoModel
 import psutil
 import os
-import subprocess
 
 logger = logging.getLogger(__name__)
 logger.propagate = True
@@ -60,7 +59,7 @@ def lookup_book_summary(book_title):
         return None
     
 
-def extract_text_to_json(epub_path, json_path, chunk_size=20):
+def extract_text_to_json(epub_path, json_path, chunk_size):
     book = epub.read_epub(epub_path)
     content = []
     for item in book.get_items():
@@ -215,7 +214,7 @@ def book_main(file_path, socketio, json_path, embeddings_path):
         
 
     if embeddings is None:
-        extract_text_to_json(file_path, json_path, chunk_size=100)
+        extract_text_to_json(file_path, json_path, chunk_size=200)
         log_memory_usage()  # Log memory usage
 
         with open(json_path, 'r', encoding='utf-8') as f:
